@@ -1,0 +1,6 @@
+@MotorInsurance.API_HostAddress = http://localhost:5116
+
+GET {{MotorInsurance.API_HostAddress}}/weatherforecast/
+Accept: application/json
+
+###

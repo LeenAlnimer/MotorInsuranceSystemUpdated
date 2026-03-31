@@ -1,0 +1,22 @@
+﻿using System.Text.Json.Serialization;
+
+namespace MotorInsurance.API.Models
+{
+    public class Quote
+    {
+        public int Id { get; set; }
+
+        public decimal Price { get; set; }
+        public DateTime CreatedAt { get; set; }
+
+        // Indicates whether the quote has been approved
+        public bool IsApproved { get; set; }
+
+        public int CarId { get; set; }
+
+        [JsonIgnore]
+        public Car? Car { get; set; }
+
+        public Policy? Policy { get; set; }
+    }
+}

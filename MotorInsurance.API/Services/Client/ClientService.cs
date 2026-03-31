@@ -1,0 +1,107 @@
+﻿using MotorInsurance.API.DTOs.Client;
+using MotorInsurance.API.Models;
+using MotorInsurance.API.Repositories.Client;
+using ClientModel = MotorInsurance.API.Models.Client;
+
+namespace MotorInsurance.API.Services.Client
+{
+    public class ClientService : IClientService
+    {
+        private readonly IClientRepository _repository;
+
+        public ClientService(IClientRepository repository)
+        {
+            _repository = repository;
+        }
+
+        public async Task<List<ClientResponseDto>> GetAllAsync()
+        {
+            var clients = await _repository.GetAllAsync();
+
+            return clients.Select(c => new ClientResponseDto
+            {
+                Id = c.Id,
+                FullName = c.FullName,
+                Email = c.Email,
+                PhoneNumber = c.PhoneNumber, // 🔥 أضفناها
+                Cars = c.Cars?.Select(car => new CarDto
+                {
+                    Id = car.Id,
+                    Brand = car.Brand,
+                    Model = car.Model
+                }).ToList()
+            }).ToList();
+        }
+
+        public async Task<ClientResponseDto?> GetByIdAsync(int id)
+        {
+            var c = await _repository.GetByIdAsync(id);
+
+            if (c == null) return null;
+
+            return new ClientResponseDto
+            {
+                Id = c.Id,
+                FullName = c.FullName,
+                Email = c.Email,
+                PhoneNumber = c.PhoneNumber,
+                Cars = c.Cars?.Select(car => new CarDto
+                {
+                    Id = car.Id,
+                    Brand = car.Brand,
+                    Model = car.Model
+                }).ToList()
+            };
+        }
+
+        public async Task<ClientResponseDto> CreateAsync(CreateClientDto dto)
+        {
+            var client = new ClientModel
+            {
+                FullName = dto.FullName,
+                Email = dto.Email,
+                PhoneNumber = dto.PhoneNumber
+            };
+
+            await _repository.AddAsync(client);
+            await _repository.SaveChangesAsync();
+
+            return new ClientResponseDto
+            {
+                Id = client.Id,
+                FullName = client.FullName,
+                Email = client.Email,
+                PhoneNumber = client.PhoneNumber, // 🔥 الحل كان هون
+                Cars = new List<CarDto>()
+            };
+        }
+
+        public async Task<bool> UpdateAsync(int id, UpdateClientDto dto)
+        {
+            var client = await _repository.GetByIdAsync(id);
+
+            if (client == null) return false;
+
+            client.FullName = dto.FullName;
+            client.Email = dto.Email;
+            client.PhoneNumber = dto.PhoneNumber;
+
+            _repository.Update(client);
+            await _repository.SaveChangesAsync();
+
+            return true;
+        }
+
+        public async Task<bool> DeleteAsync(int id)
+        {
+            var client = await _repository.GetByIdAsync(id);
+
+            if (client == null) return false;
+
+            _repository.Delete(client);
+            await _repository.SaveChangesAsync();
+
+            return true;
+        }
+    }
+}
