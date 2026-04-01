@@ -32,6 +32,12 @@ namespace MotorInsurance.API.Repositories.Claim
             return await _context.Users.AnyAsync(u => u.Id == userId);
         }
 
+        public async Task DeleteAsync(Models.Claim claim)
+        {
+            _context.Claims.Remove(claim);
+            await _context.SaveChangesAsync();
+        }
+
         public async Task SaveChangesAsync()
         {
             await _context.SaveChangesAsync();

@@ -1,4 +1,5 @@
-﻿using Microsoft.AspNetCore.Mvc;
+﻿using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Mvc;
 using MotorInsurance.API.Models;
 using MotorInsurance.API.Services.RefreshToken;
 
@@ -6,6 +7,7 @@ namespace MotorInsurance.API.Controllers
 {
     [Route("api/[controller]")]
     [ApiController]
+    [Authorize]
     public class RefreshTokensController : ControllerBase
     {
         private readonly IRefreshTokenService _service;

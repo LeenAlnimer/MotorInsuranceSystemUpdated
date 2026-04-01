@@ -7,5 +7,9 @@ namespace MotorInsurance.API.Services.Users
     {
         Task<List<User>> GetAllAsync();
         Task<User> CreateAsync(CreateUserDto dto);
+        Task<string> LoginAsync(LoginDto dto);
+
+        Task<User?> GetByIdAsync(int id);
+        Task<bool> UpdateAsync(int id, UpdateUserDto dto);
     }
 }

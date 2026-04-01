@@ -1,4 +1,5 @@
-﻿using Microsoft.AspNetCore.Mvc;
+﻿using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Mvc;
 using MotorInsurance.API.DTOs.Client;
 using MotorInsurance.API.Services.Client;
 
@@ -6,6 +7,7 @@ namespace MotorInsurance.API.Controllers
 {
     [Route("api/[controller]")]
     [ApiController]
+    [Authorize]
     public class ClientsController : ControllerBase
     {
         private readonly IClientService _service;
@@ -47,7 +49,9 @@ namespace MotorInsurance.API.Controllers
             if (!updated)
                 return NotFound();
 
-            return NoContent();
+            var client = await _service.GetByIdAsync(id);
+
+            return Ok(client);
         }
 
         [HttpDelete("{id}")]
@@ -56,9 +60,9 @@ namespace MotorInsurance.API.Controllers
             var deleted = await _service.DeleteAsync(id);
 
             if (!deleted)
-                return NotFound();
+                return NotFound(new { message = "Client not found" });
 
-            return NoContent();
+            return Ok(new { message = "Client deleted successfully" }); 
         }
     }
 }

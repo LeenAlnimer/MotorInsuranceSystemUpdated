@@ -1,6 +1,11 @@
+// JWT
+using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.IdentityModel.Tokens;
+using Microsoft.OpenApi.Models;
+using Swashbuckle.AspNetCore.SwaggerGen;
+//Swagger
 using MotorInsurance.API.Data;
-
 // Repositories
 using MotorInsurance.API.Repositories.Car;
 using MotorInsurance.API.Repositories.Claim;
@@ -9,6 +14,7 @@ using MotorInsurance.API.Repositories.Policy;
 using MotorInsurance.API.Repositories.Quote;
 using MotorInsurance.API.Repositories.RefreshToken;
 using MotorInsurance.API.Repositories.User;
+using MotorInsurance.API.Services.Auth;
 // Services
 using MotorInsurance.API.Services.Car;
 using MotorInsurance.API.Services.Claim;
@@ -17,48 +23,92 @@ using MotorInsurance.API.Services.Policy;
 using MotorInsurance.API.Services.Quote;
 using MotorInsurance.API.Services.RefreshToken;
 using MotorInsurance.API.Services.Users;
-using MotorInsurance.API.Services.Users;
+using System.Text;
 
 var builder = WebApplication.CreateBuilder(args);
 
+// Controllers
 builder.Services.AddControllers();
 
+// DB
 builder.Services.AddDbContext<ApplicationDbContext>(options =>
     options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")));
 
-// Car
-
+// Repositories 
 builder.Services.AddScoped<ICarRepository, CarRepository>();
-builder.Services.AddScoped<ICarService, CarService>();
-
-// Quote
 builder.Services.AddScoped<IQuoteRepository, QuoteRepository>();
-builder.Services.AddScoped<IQuoteService, QuoteService>();
-
-// Policy
 builder.Services.AddScoped<IPolicyRepository, PolicyRepository>();
-builder.Services.AddScoped<IPolicyService, PolicyService>();
-
-// Client
 builder.Services.AddScoped<IClientRepository, ClientRepository>();
-builder.Services.AddScoped<IClientService, ClientService>();
-
-// Claim
-
 builder.Services.AddScoped<IClaimRepository, ClaimRepository>();
-builder.Services.AddScoped<IClaimService, ClaimService>();
-
-// User
 builder.Services.AddScoped<IUserRepository, UserRepository>();
-builder.Services.AddScoped<IUserService, UserService>();
-
-// RefreshToken 
 builder.Services.AddScoped<IRefreshTokenRepository, RefreshTokenRepository>();
+
+// Services
+builder.Services.AddScoped<ICarService, CarService>();
+builder.Services.AddScoped<IQuoteService, QuoteService>();
+builder.Services.AddScoped<IPolicyService, PolicyService>();
+builder.Services.AddScoped<IClientService, ClientService>();
+builder.Services.AddScoped<IClaimService, ClaimService>();
+builder.Services.AddScoped<IUserService, UserService>();
 builder.Services.AddScoped<IRefreshTokenService, RefreshTokenService>();
 
-builder.Services.AddEndpointsApiExplorer();
-builder.Services.AddSwaggerGen();
+// JWT Service
+builder.Services.AddScoped<JwtService>();
 
+builder.Services.AddEndpointsApiExplorer();
+
+// Swagger WITH JWT 
+builder.Services.AddSwaggerGen(options =>
+{
+    options.AddSecurityDefinition("Bearer", new OpenApiSecurityScheme
+    {
+        Description = "Enter: Bearer YOUR_TOKEN",
+        Name = "Authorization",
+        In = ParameterLocation.Header,
+        Type = SecuritySchemeType.Http,
+        Scheme = "bearer",
+        BearerFormat = "JWT"
+    });
+
+    options.AddSecurityRequirement(new OpenApiSecurityRequirement
+    {
+        {
+            new OpenApiSecurityScheme
+            {
+                Reference = new OpenApiReference
+                {
+                    Type = ReferenceType.SecurityScheme,
+                    Id = "Bearer"
+                }
+            },
+            new string[] { }
+        }
+    });
+});
+
+// JWT CONFIG 
+var key = "THIS_IS_A_VERY_SECRET_KEY_123456789";
+
+builder.Services.AddAuthentication(options =>
+{
+    options.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme;
+    options.DefaultChallengeScheme = JwtBearerDefaults.AuthenticationScheme;
+})
+.AddJwtBearer(options =>
+{
+    options.TokenValidationParameters = new TokenValidationParameters
+    {
+        ValidateIssuer = false,
+        ValidateAudience = false,
+        ValidateLifetime = true,
+        ValidateIssuerSigningKey = true,
+        IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(key))
+    };
+});
+
+builder.Services.AddAuthorization();
+
+// APP 
 var app = builder.Build();
 
 if (app.Environment.IsDevelopment())
@@ -69,6 +119,8 @@ if (app.Environment.IsDevelopment())
 
 app.UseHttpsRedirection();
 
+
+app.UseAuthentication();
 app.UseAuthorization();
 
 app.MapControllers();

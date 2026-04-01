@@ -23,7 +23,7 @@ namespace MotorInsurance.API.Services.Client
                 Id = c.Id,
                 FullName = c.FullName,
                 Email = c.Email,
-                PhoneNumber = c.PhoneNumber, // 🔥 أضفناها
+                PhoneNumber = c.PhoneNumber, 
                 Cars = c.Cars?.Select(car => new CarDto
                 {
                     Id = car.Id,
@@ -71,7 +71,7 @@ namespace MotorInsurance.API.Services.Client
                 Id = client.Id,
                 FullName = client.FullName,
                 Email = client.Email,
-                PhoneNumber = client.PhoneNumber, // 🔥 الحل كان هون
+                PhoneNumber = client.PhoneNumber, 
                 Cars = new List<CarDto>()
             };
         }

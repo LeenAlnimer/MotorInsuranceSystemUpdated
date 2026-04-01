@@ -16,6 +16,7 @@ namespace MotorInsurance.API.Services.Quote
             _context = context;
         }
 
+        // CREATE
         public async Task<QuoteResponseDto> CreateAsync(CreateQuoteDto dto)
         {
             var car = await _context.Cars.FirstOrDefaultAsync(c => c.Id == dto.CarId);
@@ -69,7 +70,7 @@ namespace MotorInsurance.API.Services.Quote
             };
         }
 
-        // (approve + create policy)
+        // APPROVE
         public async Task<bool> ApproveQuoteAsync(int quoteId)
         {
             var quote = await _context.Quotes
@@ -82,10 +83,8 @@ namespace MotorInsurance.API.Services.Quote
             if (quote.IsApproved)
                 throw new Exception("Quote already approved");
 
-            // approve
             quote.IsApproved = true;
 
-            // create policy
             var policy = new Models.Policy
             {
                 QuoteId = quote.Id,
@@ -94,6 +93,66 @@ namespace MotorInsurance.API.Services.Quote
             };
 
             await _context.Policies.AddAsync(policy);
+            await _context.SaveChangesAsync();
+
+            return true;
+        }
+
+        // GET ALL
+        public async Task<List<QuoteResponseDto>> GetAllAsync()
+        {
+            var quotes = await _context.Quotes.ToListAsync();
+
+            return quotes.Select(q => new QuoteResponseDto
+            {
+                Id = q.Id,
+                Price = q.Price,
+                CreatedAt = q.CreatedAt,
+                IsApproved = q.IsApproved
+            }).ToList();
+        }
+
+        // GET BY ID
+        public async Task<QuoteResponseDto?> GetByIdAsync(int id)
+        {
+            var q = await _context.Quotes.FindAsync(id);
+
+            if (q == null) return null;
+
+            return new QuoteResponseDto
+            {
+                Id = q.Id,
+                Price = q.Price,
+                CreatedAt = q.CreatedAt,
+                IsApproved = q.IsApproved
+            };
+        }
+
+        // REJECT
+        public async Task<bool> RejectQuoteAsync(int id)
+        {
+            var quote = await _context.Quotes.FindAsync(id);
+
+            if (quote == null) return false;
+
+            if (quote.IsApproved)
+                throw new Exception("Already approved");
+
+            quote.IsApproved = false;
+
+            await _context.SaveChangesAsync();
+
+            return true;
+        }
+
+        // DELETE
+        public async Task<bool> DeleteAsync(int id)
+        {
+            var quote = await _context.Quotes.FindAsync(id);
+
+            if (quote == null) return false;
+
+            _context.Quotes.Remove(quote);
             await _context.SaveChangesAsync();
 
             return true;

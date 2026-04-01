@@ -1,5 +1,4 @@
 ﻿using MotorInsurance.API.DTOs.Claim;
-using MotorInsurance.API.Models;
 using MotorInsurance.API.Repositories.Claim;
 using ClaimModel = MotorInsurance.API.Models.Claim;
 
@@ -26,6 +25,24 @@ namespace MotorInsurance.API.Services.Claim
                 PolicyId = c.PolicyId,
                 UserId = c.UserId
             }).ToList();
+        }
+
+        public async Task<ClaimResponseDto?> GetByIdAsync(int id)
+        {
+            var claims = await _repository.GetAllAsync();
+
+            var claim = claims.FirstOrDefault(c => c.Id == id);
+
+            if (claim == null) return null;
+
+            return new ClaimResponseDto
+            {
+                Id = claim.Id,
+                Description = claim.Description,
+                Status = claim.Status,
+                PolicyId = claim.PolicyId,
+                UserId = claim.UserId
+            };
         }
 
         public async Task<(bool Success, string Message, ClaimResponseDto? Claim)> CreateAsync(CreateClaimDto dto)
@@ -57,6 +74,19 @@ namespace MotorInsurance.API.Services.Claim
                 PolicyId = claim.PolicyId,
                 UserId = claim.UserId
             });
+        }
+
+        public async Task<bool> DeleteAsync(int id)
+        {
+            var claims = await _repository.GetAllAsync();
+
+            var claim = claims.FirstOrDefault(c => c.Id == id);
+
+            if (claim == null) return false;
+
+            await _repository.DeleteAsync(claim);
+
+            return true;
         }
     }
 }
