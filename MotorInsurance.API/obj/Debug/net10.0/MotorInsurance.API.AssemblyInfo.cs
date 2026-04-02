@@ -14,7 +14,7 @@ using System.Reflection;
 [assembly: System.Reflection.AssemblyCompanyAttribute("MotorInsurance.API")]
 [assembly: System.Reflection.AssemblyConfigurationAttribute("Debug")]
 [assembly: System.Reflection.AssemblyFileVersionAttribute("1.0.0.0")]
-[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+9c246cf57585b2423637c0635c4352f2568eb0ad")]
+[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+13e1c10fab4a41ca0b453deca423c99b4e322954")]
 [assembly: System.Reflection.AssemblyProductAttribute("MotorInsurance.API")]
 [assembly: System.Reflection.AssemblyTitleAttribute("MotorInsurance.API")]
 [assembly: System.Reflection.AssemblyVersionAttribute("1.0.0.0")]

@@ -55,7 +55,7 @@ namespace MotorInsurance.API.Services.Users
             if (!isValid)
                 throw new Exception("Invalid username or password");
 
-            var token = _jwtService.GenerateToken(user.Username);
+            var token = _jwtService.GenerateToken(user.Username, user.Role);
 
             return token;
         }
