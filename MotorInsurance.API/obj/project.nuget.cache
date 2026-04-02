@@ -1,11 +1,12 @@
 {
   "version": 2,
-  "dgSpecHash": "et1MPCktSJ8=",
+  "dgSpecHash": "be16KPDKeJY=",
   "success": true,
   "projectFilePath": "C:\\Users\\l.alnimer\\OneDrive - gig Jordan\\Desktop\\MotorInsuranceSystem\\MotorInsurance.API\\MotorInsurance.API.csproj",
   "expectedPackageFiles": [
     "C:\\Users\\l.alnimer\\.nuget\\packages\\azure.core\\1.47.1\\azure.core.1.47.1.nupkg.sha512",
     "C:\\Users\\l.alnimer\\.nuget\\packages\\azure.identity\\1.14.2\\azure.identity.1.14.2.nupkg.sha512",
+    "C:\\Users\\l.alnimer\\.nuget\\packages\\bcrypt.net-next\\4.1.0\\bcrypt.net-next.4.1.0.nupkg.sha512",
     "C:\\Users\\l.alnimer\\.nuget\\packages\\humanizer.core\\2.14.1\\humanizer.core.2.14.1.nupkg.sha512",
     "C:\\Users\\l.alnimer\\.nuget\\packages\\microsoft.aspnetcore.authentication.jwtbearer\\10.0.5\\microsoft.aspnetcore.authentication.jwtbearer.10.0.5.nupkg.sha512",
     "C:\\Users\\l.alnimer\\.nuget\\packages\\microsoft.aspnetcore.openapi\\9.0.0\\microsoft.aspnetcore.openapi.9.0.0.nupkg.sha512",

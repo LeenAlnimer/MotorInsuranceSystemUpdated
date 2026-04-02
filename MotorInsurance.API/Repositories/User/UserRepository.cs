@@ -1,5 +1,7 @@
 ﻿using Microsoft.EntityFrameworkCore;
 using MotorInsurance.API.Data;
+using MotorInsurance.API.Models;
+using UserModel = MotorInsurance.API.Models.User;
 
 namespace MotorInsurance.API.Repositories.User
 {
@@ -12,12 +14,12 @@ namespace MotorInsurance.API.Repositories.User
             _context = context;
         }
 
-        public async Task<List<Models.User>> GetAllAsync()
+        public async Task<List<UserModel>> GetAllAsync()
         {
             return await _context.Users.ToListAsync();
         }
 
-        public async Task AddAsync(Models.User user)
+        public async Task AddAsync(UserModel user)
         {
             await _context.Users.AddAsync(user);
         }
@@ -25,6 +27,13 @@ namespace MotorInsurance.API.Repositories.User
         public async Task<bool> ExistsAsync(int id)
         {
             return await _context.Users.AnyAsync(u => u.Id == id);
+        }
+
+       
+        public async Task<UserModel?> GetByUsernameAsync(string username)
+        {
+            return await _context.Users
+                .FirstOrDefaultAsync(u => u.Username.ToLower() == username.ToLower());
         }
 
         public async Task SaveChangesAsync()

@@ -1,11 +1,9 @@
-// JWT
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
-using Swashbuckle.AspNetCore.SwaggerGen;
-//Swagger
 using MotorInsurance.API.Data;
+
 // Repositories
 using MotorInsurance.API.Repositories.Car;
 using MotorInsurance.API.Repositories.Claim;
@@ -14,8 +12,9 @@ using MotorInsurance.API.Repositories.Policy;
 using MotorInsurance.API.Repositories.Quote;
 using MotorInsurance.API.Repositories.RefreshToken;
 using MotorInsurance.API.Repositories.User;
-using MotorInsurance.API.Services.Auth;
+
 // Services
+using MotorInsurance.API.Services.Auth;
 using MotorInsurance.API.Services.Car;
 using MotorInsurance.API.Services.Claim;
 using MotorInsurance.API.Services.Client;
@@ -23,6 +22,7 @@ using MotorInsurance.API.Services.Policy;
 using MotorInsurance.API.Services.Quote;
 using MotorInsurance.API.Services.RefreshToken;
 using MotorInsurance.API.Services.Users;
+
 using System.Text;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -34,7 +34,7 @@ builder.Services.AddControllers();
 builder.Services.AddDbContext<ApplicationDbContext>(options =>
     options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")));
 
-// Repositories 
+// Repositories
 builder.Services.AddScoped<ICarRepository, CarRepository>();
 builder.Services.AddScoped<IQuoteRepository, QuoteRepository>();
 builder.Services.AddScoped<IPolicyRepository, PolicyRepository>();
@@ -57,7 +57,7 @@ builder.Services.AddScoped<JwtService>();
 
 builder.Services.AddEndpointsApiExplorer();
 
-// Swagger WITH JWT 
+// Swagger WITH JWT
 builder.Services.AddSwaggerGen(options =>
 {
     options.AddSecurityDefinition("Bearer", new OpenApiSecurityScheme
@@ -86,8 +86,8 @@ builder.Services.AddSwaggerGen(options =>
     });
 });
 
-// JWT CONFIG 
-var key = "THIS_IS_A_VERY_SECRET_KEY_123456789";
+//JWT CONFIG من appsettings
+var key = builder.Configuration["Jwt:Key"];
 
 builder.Services.AddAuthentication(options =>
 {
@@ -108,7 +108,7 @@ builder.Services.AddAuthentication(options =>
 
 builder.Services.AddAuthorization();
 
-// APP 
+// APP
 var app = builder.Build();
 
 if (app.Environment.IsDevelopment())
@@ -118,7 +118,6 @@ if (app.Environment.IsDevelopment())
 }
 
 app.UseHttpsRedirection();
-
 
 app.UseAuthentication();
 app.UseAuthorization();

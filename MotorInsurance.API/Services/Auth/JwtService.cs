@@ -1,18 +1,26 @@
 ﻿using System.IdentityModel.Tokens.Jwt;
 using System.Text;
 using Microsoft.IdentityModel.Tokens;
+using Microsoft.Extensions.Configuration;
+using System.Security.Claims;
+using SecurityClaim = System.Security.Claims.Claim;
 
 namespace MotorInsurance.API.Services.Auth
 {
     public class JwtService
     {
-        private readonly string _key = "THIS_IS_A_VERY_SECRET_KEY_123456789";
+        private readonly string _key;
+
+        public JwtService(IConfiguration configuration)
+        {
+            _key = configuration["Jwt:Key"];
+        }
 
         public string GenerateToken(string username)
         {
-            var claims = new List<System.Security.Claims.Claim>
+            var claims = new List<SecurityClaim>
             {
-                new System.Security.Claims.Claim(System.Security.Claims.ClaimTypes.Name, username)
+                new SecurityClaim(ClaimTypes.Name, username)
             };
 
             var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(_key));

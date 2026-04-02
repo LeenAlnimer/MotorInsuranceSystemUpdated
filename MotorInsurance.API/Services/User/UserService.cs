@@ -2,6 +2,7 @@
 using MotorInsurance.API.Repositories.User;
 using MotorInsurance.API.DTOs.User;
 using MotorInsurance.API.Services.Auth;
+using BCrypt.Net;
 
 namespace MotorInsurance.API.Services.Users
 {
@@ -23,20 +24,17 @@ namespace MotorInsurance.API.Services.Users
 
         public async Task<User> CreateAsync(CreateUserDto dto)
         {
-            var users = await _repository.GetAllAsync();
+            var existingUser = await _repository.GetByUsernameAsync(dto.Username);
 
-            //  check if username already exists
-            var exists = users.Any(u =>
-                u.Username.Trim().ToLower() == dto.Username.Trim().ToLower()
-            );
-
-            if (exists)
+            if (existingUser != null)
                 throw new Exception("Username already exists");
+
+            var hashedPassword = BCrypt.Net.BCrypt.HashPassword(dto.Password);
 
             var user = new User
             {
                 Username = dto.Username.Trim(),
-                Password = dto.Password.Trim()
+                Password = hashedPassword
             };
 
             await _repository.AddAsync(user);
@@ -44,16 +42,17 @@ namespace MotorInsurance.API.Services.Users
 
             return user;
         }
+
         public async Task<string> LoginAsync(LoginDto dto)
         {
-            var users = await _repository.GetAllAsync();
-
-            var user = users.FirstOrDefault(u =>
-                u.Username.Trim().ToLower() == dto.Username.Trim().ToLower() &&
-                u.Password.Trim() == dto.Password.Trim()
-            );
+            var user = await _repository.GetByUsernameAsync(dto.Username);
 
             if (user == null)
+                throw new Exception("Invalid username or password");
+
+            bool isValid = BCrypt.Net.BCrypt.Verify(dto.Password, user.Password);
+
+            if (!isValid)
                 throw new Exception("Invalid username or password");
 
             var token = _jwtService.GenerateToken(user.Username);
@@ -61,14 +60,12 @@ namespace MotorInsurance.API.Services.Users
             return token;
         }
 
-       
         public async Task<User?> GetByIdAsync(int id)
         {
             var users = await _repository.GetAllAsync();
             return users.FirstOrDefault(u => u.Id == id);
         }
 
-        
         public async Task<bool> UpdateAsync(int id, UpdateUserDto dto)
         {
             var users = await _repository.GetAllAsync();
@@ -78,7 +75,7 @@ namespace MotorInsurance.API.Services.Users
                 return false;
 
             user.Username = dto.Username.Trim();
-            user.Password = dto.Password.Trim();
+            user.Password = BCrypt.Net.BCrypt.HashPassword(dto.Password);
 
             await _repository.SaveChangesAsync();
             return true;
