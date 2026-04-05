@@ -3,7 +3,6 @@ using System.Text;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.Extensions.Configuration;
 using System.Security.Claims;
-using JwtClaim = System.Security.Claims.Claim;
 
 namespace MotorInsurance.API.Services.Auth
 {
@@ -16,12 +15,13 @@ namespace MotorInsurance.API.Services.Auth
             _key = configuration["Jwt:Key"];
         }
 
-        public string GenerateToken(string username, string role)
+        public string GenerateToken(int userId, string username, string role)
         {
-            var claims = new List<JwtClaim>
+            var claims = new List<System.Security.Claims.Claim>
             {
-                new JwtClaim(ClaimTypes.Name, username),
-                new JwtClaim(ClaimTypes.Role, role) 
+                new System.Security.Claims.Claim(ClaimTypes.NameIdentifier, userId.ToString()),
+                new System.Security.Claims.Claim(ClaimTypes.Name, username),
+                new System.Security.Claims.Claim(ClaimTypes.Role, role)
             };
 
             var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(_key));
@@ -29,7 +29,7 @@ namespace MotorInsurance.API.Services.Auth
 
             var token = new JwtSecurityToken(
                 claims: claims,
-                expires: DateTime.Now.AddHours(1),
+                expires: DateTime.Now.AddHours(2),
                 signingCredentials: creds
             );
 

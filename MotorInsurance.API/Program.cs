@@ -21,7 +21,7 @@ using MotorInsurance.API.Services.Client;
 using MotorInsurance.API.Services.Policy;
 using MotorInsurance.API.Services.Quote;
 using MotorInsurance.API.Services.RefreshToken;
-using MotorInsurance.API.Services.Users;
+using MotorInsurance.API.Services.User;
 
 using System.Text;
 
@@ -30,9 +30,22 @@ var builder = WebApplication.CreateBuilder(args);
 // Controllers
 builder.Services.AddControllers();
 
-// DB
+//  Database
 builder.Services.AddDbContext<ApplicationDbContext>(options =>
     options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")));
+
+//  Add CORS for Vue Frontend
+builder.Services.AddCors(options =>
+{
+    options.AddPolicy("AllowFrontend",
+        policy =>
+        {
+            policy.WithOrigins("http://localhost:5173")  //  Vue dev server
+                  .AllowAnyHeader()
+                  .AllowAnyMethod()
+                  .AllowCredentials();
+        });
+});
 
 // Repositories
 builder.Services.AddScoped<ICarRepository, CarRepository>();
@@ -43,7 +56,7 @@ builder.Services.AddScoped<IClaimRepository, ClaimRepository>();
 builder.Services.AddScoped<IUserRepository, UserRepository>();
 builder.Services.AddScoped<IRefreshTokenRepository, RefreshTokenRepository>();
 
-// Services
+//  Services
 builder.Services.AddScoped<ICarService, CarService>();
 builder.Services.AddScoped<IQuoteService, QuoteService>();
 builder.Services.AddScoped<IPolicyService, PolicyService>();
@@ -57,7 +70,7 @@ builder.Services.AddScoped<JwtService>();
 
 builder.Services.AddEndpointsApiExplorer();
 
-// Swagger WITH JWT
+//  Swagger + JWT
 builder.Services.AddSwaggerGen(options =>
 {
     options.AddSecurityDefinition("Bearer", new OpenApiSecurityScheme
@@ -86,7 +99,7 @@ builder.Services.AddSwaggerGen(options =>
     });
 });
 
-//JWT CONFIG من appsettings
+// JWT CONFIG from appsettings.json
 var key = builder.Configuration["Jwt:Key"];
 
 builder.Services.AddAuthentication(options =>
@@ -108,7 +121,6 @@ builder.Services.AddAuthentication(options =>
 
 builder.Services.AddAuthorization();
 
-// APP
 var app = builder.Build();
 
 if (app.Environment.IsDevelopment())
@@ -118,6 +130,9 @@ if (app.Environment.IsDevelopment())
 }
 
 app.UseHttpsRedirection();
+
+//  Use CORS BEFORE Authentication
+app.UseCors("AllowFrontend");
 
 app.UseAuthentication();
 app.UseAuthorization();

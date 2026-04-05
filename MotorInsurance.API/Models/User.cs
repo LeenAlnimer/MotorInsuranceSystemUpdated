@@ -1,4 +1,5 @@
-﻿using System.Text.Json.Serialization;
+﻿using System.ComponentModel.DataAnnotations;
+using System.Text.Json.Serialization;
 
 namespace MotorInsurance.API.Models
 {
@@ -6,13 +7,24 @@ namespace MotorInsurance.API.Models
     {
         public int Id { get; set; }
 
-        public string? Username { get; set; }
-        public string? Password { get; set; }
+        [Required, MinLength(3)]
+        public string Username { get; set; }
 
-        
-        public string Role { get; set; } = "Employee";
+        [Required, EmailAddress]
+        public string Email { get; set; }
 
-        public List<Claim>? Claims { get; set; }
-        public List<RefreshToken>? RefreshTokens { get; set; }
+        [Required]
+        [RegularExpression(@"^07[789]\d{7}$")]
+        public string PhoneNumber { get; set; }
+
+        [Required]
+        [JsonIgnore] 
+        public string PasswordHash { get; set; }
+
+        public string Role { get; set; } = "User";
+
+        public DateTime DateCreated { get; set; } = DateTime.UtcNow;
+
+        public DateTime? LastLogin { get; set; }
     }
 }

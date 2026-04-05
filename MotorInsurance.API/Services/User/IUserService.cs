@@ -1,15 +1,16 @@
-﻿using MotorInsurance.API.Models;
-using MotorInsurance.API.DTOs.User;
+﻿using MotorInsurance.API.DTOs.User;
+using MotorInsurance.API.Models;
 
-namespace MotorInsurance.API.Services.Users
+namespace MotorInsurance.API.Services.User
 {
     public interface IUserService
     {
-        Task<List<User>> GetAllAsync();
-        Task<User> CreateAsync(CreateUserDto dto);
-        Task<string> LoginAsync(LoginDto dto);
+        Task<Models.User> CreateAsync(CreateUserDto dto);
+        Task<(string Token, Models.User User)> LoginAsync(LoginDto dto);
 
-        Task<User?> GetByIdAsync(int id);
+        Task<List<Models.User>> GetAllAsync();
+        Task<Models.User?> GetByIdAsync(int id);
         Task<bool> UpdateAsync(int id, UpdateUserDto dto);
+        Task<bool> DeleteAsync(int id);
     }
 }

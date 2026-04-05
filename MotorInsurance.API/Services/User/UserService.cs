@@ -4,7 +4,7 @@ using MotorInsurance.API.DTOs.User;
 using MotorInsurance.API.Services.Auth;
 using BCrypt.Net;
 
-namespace MotorInsurance.API.Services.Users
+namespace MotorInsurance.API.Services.User
 {
     public class UserService : IUserService
     {
@@ -17,24 +17,24 @@ namespace MotorInsurance.API.Services.Users
             _jwtService = jwtService;
         }
 
-        public async Task<List<User>> GetAllAsync()
+        public async Task<Models.User> CreateAsync(CreateUserDto dto)
         {
-            return await _repository.GetAllAsync();
-        }
+            if (await _repository.GetByEmailAsync(dto.Email) is not null)
+                throw new Exception("Email already exists");
 
-        public async Task<User> CreateAsync(CreateUserDto dto)
-        {
-            var existingUser = await _repository.GetByUsernameAsync(dto.Username);
+            if (await _repository.GetByPhoneAsync(dto.PhoneNumber) is not null)
+                throw new Exception("Phone already exists");
 
-            if (existingUser != null)
+            if (await _repository.GetByUsernameAsync(dto.Username) is not null)
                 throw new Exception("Username already exists");
 
-            var hashedPassword = BCrypt.Net.BCrypt.HashPassword(dto.Password);
-
-            var user = new User
+            var user = new Models.User
             {
                 Username = dto.Username.Trim(),
-                Password = hashedPassword
+                Email = dto.Email.Trim(),
+                PhoneNumber = dto.PhoneNumber,
+                PasswordHash = BCrypt.Net.BCrypt.HashPassword(dto.Password),
+                Role = "User"
             };
 
             await _repository.AddAsync(user);
@@ -43,41 +43,75 @@ namespace MotorInsurance.API.Services.Users
             return user;
         }
 
-        public async Task<string> LoginAsync(LoginDto dto)
+        public async Task<(string Token, Models.User User)> LoginAsync(LoginDto dto)
         {
-            var user = await _repository.GetByUsernameAsync(dto.Username);
+            var user = await _repository.GetByIdentifierAsync(dto.Identifier);
 
-            if (user == null)
-                throw new Exception("Invalid username or password");
+            if (user is null || !BCrypt.Net.BCrypt.Verify(dto.Password, user.PasswordHash))
+                throw new Exception("Invalid email/phone or password");
 
-            bool isValid = BCrypt.Net.BCrypt.Verify(dto.Password, user.Password);
+            user.LastLogin = DateTime.UtcNow;
+            await _repository.SaveChangesAsync();
 
-            if (!isValid)
-                throw new Exception("Invalid username or password");
+            var token = _jwtService.GenerateToken(user.Id, user.Username, user.Role);
 
-            var token = _jwtService.GenerateToken(user.Username, user.Role);
-
-            return token;
+            return (token, user);
         }
 
-        public async Task<User?> GetByIdAsync(int id)
+        public async Task<List<Models.User>> GetAllAsync()
         {
-            var users = await _repository.GetAllAsync();
-            return users.FirstOrDefault(u => u.Id == id);
+            return await _repository.GetAllAsync();
+        }
+
+        public async Task<Models.User?> GetByIdAsync(int id)
+        {
+            return await _repository.GetByIdAsync(id);
         }
 
         public async Task<bool> UpdateAsync(int id, UpdateUserDto dto)
         {
-            var users = await _repository.GetAllAsync();
-            var user = users.FirstOrDefault(u => u.Id == id);
+            var user = await _repository.GetByIdAsync(id);
+            if (user is null) return false;
 
-            if (user == null)
-                return false;
+            if (!string.IsNullOrWhiteSpace(dto.Username))
+            {
+                if (await _repository.GetByUsernameAsync(dto.Username) is not null)
+                    throw new Exception("Username already used");
 
-            user.Username = dto.Username.Trim();
-            user.Password = BCrypt.Net.BCrypt.HashPassword(dto.Password);
+                user.Username = dto.Username;
+            }
+
+            if (!string.IsNullOrWhiteSpace(dto.Email))
+            {
+                if (await _repository.GetByEmailAsync(dto.Email) is not null)
+                    throw new Exception("Email already used");
+
+                user.Email = dto.Email;
+            }
+
+            if (!string.IsNullOrWhiteSpace(dto.PhoneNumber))
+            {
+                if (await _repository.GetByPhoneAsync(dto.PhoneNumber) is not null)
+                    throw new Exception("Phone already used");
+
+                user.PhoneNumber = dto.PhoneNumber;
+            }
+
+            if (!string.IsNullOrWhiteSpace(dto.Password))
+                user.PasswordHash = BCrypt.Net.BCrypt.HashPassword(dto.Password);
 
             await _repository.SaveChangesAsync();
+            return true;
+        }
+
+        public async Task<bool> DeleteAsync(int id)
+        {
+            var user = await _repository.GetByIdAsync(id);
+            if (user is null) return false;
+
+            await _repository.DeleteAsync(user);
+            await _repository.SaveChangesAsync();
+
             return true;
         }
     }

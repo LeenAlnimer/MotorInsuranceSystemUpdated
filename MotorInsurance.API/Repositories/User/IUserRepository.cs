@@ -1,15 +1,19 @@
 ﻿using MotorInsurance.API.Models;
-using UserModel = MotorInsurance.API.Models.User;
 
 namespace MotorInsurance.API.Repositories.User
 {
     public interface IUserRepository
     {
-        Task<List<UserModel>> GetAllAsync();
-        Task AddAsync(UserModel user);
-        Task<bool> ExistsAsync(int id);
-        Task SaveChangesAsync();
+        Task<Models.User?> GetByEmailAsync(string email);
+        Task<Models.User?> GetByPhoneAsync(string phone);
+        Task<Models.User?> GetByUsernameAsync(string username);
+        Task<Models.User?> GetByIdentifierAsync(string identifier);
 
-        Task<UserModel?> GetByUsernameAsync(string username);
+        Task<Models.User?> GetByIdAsync(int id);
+        Task<List<Models.User>> GetAllAsync();
+
+        Task AddAsync(Models.User user);
+        Task DeleteAsync(Models.User user);
+        Task SaveChangesAsync();
     }
 }

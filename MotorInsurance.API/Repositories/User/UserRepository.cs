@@ -1,7 +1,6 @@
 ﻿using Microsoft.EntityFrameworkCore;
 using MotorInsurance.API.Data;
 using MotorInsurance.API.Models;
-using UserModel = MotorInsurance.API.Models.User;
 
 namespace MotorInsurance.API.Repositories.User
 {
@@ -14,26 +13,58 @@ namespace MotorInsurance.API.Repositories.User
             _context = context;
         }
 
-        public async Task<List<UserModel>> GetAllAsync()
+        public async Task<Models.User?> GetByEmailAsync(string email)
         {
-            return await _context.Users.ToListAsync();
+            return await _context.Users
+                .AsNoTracking()
+                .FirstOrDefaultAsync(u => u.Email.ToLower() == email.ToLower());
         }
 
-        public async Task AddAsync(UserModel user)
+        public async Task<Models.User?> GetByPhoneAsync(string phone)
+        {
+            return await _context.Users
+                .AsNoTracking()
+                .FirstOrDefaultAsync(u => u.PhoneNumber == phone);
+        }
+
+        public async Task<Models.User?> GetByUsernameAsync(string username)
+        {
+            return await _context.Users
+                .AsNoTracking()
+                .FirstOrDefaultAsync(u => u.Username.ToLower() == username.ToLower());
+        }
+
+        // ✅ مهم جداً: Login يحتاج Tracking للحصول على PasswordHash بشكل صحيح
+        public async Task<Models.User?> GetByIdentifierAsync(string identifier)
+        {
+            identifier = identifier.ToLower();
+
+            return await _context.Users.FirstOrDefaultAsync(u =>
+                u.Email.ToLower() == identifier ||
+                u.PhoneNumber == identifier
+            );
+        }
+
+        public async Task<Models.User?> GetByIdAsync(int id)
+        {
+            return await _context.Users.FindAsync(id);
+        }
+
+        public async Task<List<Models.User>> GetAllAsync()
+        {
+            return await _context.Users
+                .AsNoTracking()
+                .ToListAsync();
+        }
+
+        public async Task AddAsync(Models.User user)
         {
             await _context.Users.AddAsync(user);
         }
 
-        public async Task<bool> ExistsAsync(int id)
+        public async Task DeleteAsync(Models.User user)
         {
-            return await _context.Users.AnyAsync(u => u.Id == id);
-        }
-
-       
-        public async Task<UserModel?> GetByUsernameAsync(string username)
-        {
-            return await _context.Users
-                .FirstOrDefaultAsync(u => u.Username.ToLower() == username.ToLower());
+            _context.Users.Remove(user);
         }
 
         public async Task SaveChangesAsync()

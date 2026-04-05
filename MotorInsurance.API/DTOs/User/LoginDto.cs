@@ -1,8 +1,13 @@
-﻿namespace MotorInsurance.API.DTOs.User
+﻿using System.ComponentModel.DataAnnotations;
+
+namespace MotorInsurance.API.DTOs.User
 {
     public class LoginDto
     {
-        public string Username { get; set; }
+        [Required]
+        public string Identifier { get; set; }
+
+        [Required]
         public string Password { get; set; }
     }
 }

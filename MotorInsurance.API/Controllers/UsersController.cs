@@ -1,7 +1,8 @@
 ﻿using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using MotorInsurance.API.Services.Users;
 using MotorInsurance.API.DTOs.User;
+using MotorInsurance.API.Services.User;
+using System.Security.Claims;
 
 namespace MotorInsurance.API.Controllers
 {
@@ -16,63 +17,113 @@ namespace MotorInsurance.API.Controllers
             _userService = userService;
         }
 
-        //  Protected
-        [Authorize]
-        [HttpGet]
-        public async Task<IActionResult> GetAll()
-        {
-            var users = await _userService.GetAllAsync();
-            return Ok(users);
-        }
-
-       
-        [Authorize]
-        [HttpGet("{id}")]
-        public async Task<IActionResult> GetById(int id)
-        {
-            var user = await _userService.GetByIdAsync(id);
-
-            if (user == null)
-                return NotFound();
-
-            return Ok(user);
-        }
-
-        //  Public
+        //  REGISTER
         [AllowAnonymous]
         [HttpPost("register")]
-        public async Task<IActionResult> Register([FromBody] CreateUserDto dto)
+        public async Task<IActionResult> Register(CreateUserDto dto)
         {
-            var user = await _userService.CreateAsync(dto);
-            return CreatedAtAction(nameof(GetAll), new { id = user?.Id }, user);
+            if (!ModelState.IsValid)
+                return BadRequest(ModelState);
+
+            try
+            {
+                var user = await _userService.CreateAsync(dto);
+
+                return Ok(new
+                {
+                    user.Id,
+                    user.Username,
+                    user.Email,
+                    user.PhoneNumber,
+                    user.Role
+                });
+            }
+            catch (ArgumentException ex) // validation errors
+            {
+                return BadRequest(new { message = ex.Message });
+            }
+            catch (Exception)
+            {
+                return StatusCode(500, new { message = "Something went wrong" });
+            }
         }
 
-        // Public
+
+        //  LOGIN
         [AllowAnonymous]
         [HttpPost("login")]
-        public async Task<IActionResult> Login([FromBody] LoginDto dto)
+        public async Task<IActionResult> Login(LoginDto dto)
         {
-            var token = await _userService.LoginAsync(dto);
+            try
+            {
+                var result = await _userService.LoginAsync(dto);
 
-            if (string.IsNullOrEmpty(token))
-                return Unauthorized();
-
-            return Ok(new { token });
+                return Ok(new
+                {
+                    token = result.Token,
+                    user = new
+                    {
+                        result.User.Id,
+                        result.User.Username,
+                        result.User.Email,
+                        result.User.PhoneNumber,
+                        result.User.Role
+                    }
+                });
+            }
+            catch (ArgumentException ex)
+            {
+                return BadRequest(new { message = ex.Message });
+            }
+            catch
+            {
+                return StatusCode(500, new { message = "Something went wrong" });
+            }
         }
 
 
+        //  GET CURRENT USER (ME)
         [Authorize]
-        [HttpPut("{id}")]
-        public async Task<IActionResult> Update(int id, [FromBody] UpdateUserDto dto)
+        [HttpGet("me")]
+        public async Task<IActionResult> GetMe()
         {
-            var updated = await _userService.UpdateAsync(id, dto);
+            var userId = int.Parse(User.FindFirst(ClaimTypes.NameIdentifier)!.Value);
 
-            if (!updated)
-                return NotFound();
+            var user = await _userService.GetByIdAsync(userId);
 
-            var user = await _userService.GetByIdAsync(id);
+            return Ok(new
+            {
+                user.Id,
+                user.Username,
+                user.Email,
+                user.PhoneNumber,
+                user.Role,
+                user.DateCreated,
+                user.LastLogin
+            });
+        }
 
-            return Ok(user);
+
+        // UPDATE USER
+        [Authorize]
+        [HttpPut]
+        public async Task<IActionResult> Update(UpdateUserDto dto)
+        {
+            var userId = int.Parse(User.FindFirst(ClaimTypes.NameIdentifier)!.Value);
+
+            try
+            {
+                await _userService.UpdateAsync(userId, dto);
+                return Ok(new { message = "Updated successfully" });
+            }
+            catch (ArgumentException ex)
+            {
+                return BadRequest(new { message = ex.Message });
+            }
+            catch
+            {
+                return StatusCode(500, new { message = "Something went wrong" });
+            }
         }
     }
 }
