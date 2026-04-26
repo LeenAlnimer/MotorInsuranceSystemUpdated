@@ -1,0 +1,72 @@
+﻿using Microsoft.EntityFrameworkCore;
+using MotorInsurance.API.Data;
+using MotorInsurance.API.Models;
+
+namespace MotorInsurance.API.Repositories.User
+{
+    public class UserRepository : IUserRepository
+    {
+        private readonly ApplicationDbContext _context;
+
+        public UserRepository(ApplicationDbContext context)
+        {
+            _context = context;
+        }
+
+        public async Task<Models.User?> GetByEmailAsync(string email)
+        {
+            return await _context.Users
+                .AsNoTracking()
+                .FirstOrDefaultAsync(u => u.Email.ToLower() == email.ToLower());
+        }
+
+        public async Task<Models.User?> GetByPhoneAsync(string phone)
+        {
+            return await _context.Users
+                .AsNoTracking()
+                .FirstOrDefaultAsync(u => u.PhoneNumber == phone);
+        }
+
+        public async Task<Models.User?> GetByUsernameAsync(string username)
+        {
+            return await _context.Users
+                .AsNoTracking()
+                .FirstOrDefaultAsync(u => u.Username.ToLower() == username.ToLower());
+        }
+
+        public async Task<Models.User?> GetByIdentifierAsync(string identifier)
+        {
+            identifier = identifier.ToLower();
+
+            return await _context.Users.AsNoTracking().FirstOrDefaultAsync(u =>
+                u.Email.ToLower() == identifier ||
+                u.PhoneNumber == identifier
+            );
+        }
+
+        public async Task<Models.User?> GetByIdAsync(int id)
+        {
+            return await _context.Users.FindAsync(id);
+        }
+
+        public async Task<List<Models.User>> GetAllAsync()
+        {
+            return await _context.Users.AsNoTracking().ToListAsync();
+        }
+
+        public async Task AddAsync(Models.User user)
+        {
+            await _context.Users.AddAsync(user);
+        }
+
+        public async Task DeleteAsync(Models.User user)
+        {
+            _context.Users.Remove(user);
+        }
+
+        public async Task SaveChangesAsync()
+        {
+            await _context.SaveChangesAsync();
+        }
+    }
+}

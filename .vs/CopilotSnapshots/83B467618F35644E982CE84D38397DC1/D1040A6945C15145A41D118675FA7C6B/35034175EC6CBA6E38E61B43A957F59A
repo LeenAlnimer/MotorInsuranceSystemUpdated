@@ -1,0 +1,61 @@
+﻿using MotorInsurance.API.DTOs.Claim;
+using MotorInsurance.API.Models;
+using MotorInsurance.API.Repositories.Claim;
+
+namespace MotorInsurance.API.Services.Claim
+{
+    public class ClaimService : IClaimService
+    {
+        private readonly IClaimRepository _repository;
+
+        public ClaimService(IClaimRepository repository)
+        {
+            _repository = repository;
+        }
+
+        public async Task<List<ClaimResponseDto>> GetAllAsync()
+        {
+            var claims = await _repository.GetAllAsync();
+
+            return claims.Select(c => new ClaimResponseDto
+            {
+                Id = c.Id,
+                Description = c.Description,
+                Status = c.Status,
+                PolicyId = c.PolicyId,
+                UserId = c.UserId
+            }).ToList();
+        }
+
+        public async Task<(bool Success, string Message, ClaimResponseDto? Claim)> CreateAsync(CreateClaimDto dto)
+        {
+            var policyExists = await _repository.PolicyExists(dto.PolicyId);
+            if (!policyExists)
+                return (false, "Policy not found", null);
+
+            var userExists = await _repository.UserExists(dto.UserId);
+            if (!userExists)
+                return (false, "User not found", null);
+
+            var claim = new Claim
+            {
+                Description = dto.Description,
+                Status = dto.Status,
+                PolicyId = dto.PolicyId,
+                UserId = dto.UserId
+            };
+
+            await _repository.AddAsync(claim);
+            await _repository.SaveChangesAsync();
+
+            return (true, "Created", new ClaimResponseDto
+            {
+                Id = claim.Id,
+                Description = claim.Description,
+                Status = claim.Status,
+                PolicyId = claim.PolicyId,
+                UserId = claim.UserId
+            });
+        }
+    }
+}

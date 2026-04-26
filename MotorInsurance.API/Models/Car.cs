@@ -1,5 +1,5 @@
-﻿using System.Collections;
-using System.Text.Json.Serialization;
+﻿using System.Text.Json.Serialization;
+using MotorInsurance.API.Common;
 
 namespace MotorInsurance.API.Models
 {
@@ -10,7 +10,7 @@ namespace MotorInsurance.API.Models
         public string? Model { get; set; }
         public int Year { get; set; }
         public decimal Price { get; set; }
-        public string? FuelType { get; set; }
+        public FuelType FuelType { get; set; }
 
         public int ClientId { get; set; }
 
@@ -18,5 +18,8 @@ namespace MotorInsurance.API.Models
         public Client? Client { get; set; }
 
         public List<Quote>? Quotes { get; set; }
+
+        public bool IsDeleted { get; set; } = false;
+        public DateTime? DeletedAt { get; set; }
     }
 }

@@ -1,0 +1,13 @@
+﻿using MotorInsurance.API.Models;
+
+namespace MotorInsurance.API.Services.Client
+{
+    public interface IClientService
+    {
+        Task<List<Client>> GetAllAsync();
+        Task<Client?> GetByIdAsync(int id);
+        Task<Client> CreateAsync(Client client);
+        Task<bool> UpdateAsync(int id, Client client);
+        Task<bool> DeleteAsync(int id);
+    }
+}

@@ -1,0 +1,11 @@
+{
+  "ExpandedNodes": [
+    "",
+    "\\MotorInsurance.API",
+    "\\MotorInsurance.API\\Data",
+    "\\MotorInsurance.API\\DTOs",
+    "\\MotorInsurance.API\\Repositories",
+    "\\MotorInsurance.API\\Services"
+  ],
+  "PreviewInSolutionExplorer": false
+}

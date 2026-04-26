@@ -17,7 +17,7 @@ namespace MotorInsurance.API.Migrations
         {
 #pragma warning disable 612, 618
             modelBuilder
-                .HasAnnotation("ProductVersion", "10.0.5")
+                .HasAnnotation("ProductVersion", "10.0.7")
                 .HasAnnotation("Relational:MaxIdentifierLength", 128);
 
             SqlServerModelBuilderExtensions.UseIdentityColumns(modelBuilder);
@@ -36,13 +36,21 @@ namespace MotorInsurance.API.Migrations
                     b.Property<int>("ClientId")
                         .HasColumnType("int");
 
+                    b.Property<DateTime?>("DeletedAt")
+                        .HasColumnType("datetime2");
+
                     b.Property<string>("FuelType")
+                        .IsRequired()
                         .HasColumnType("nvarchar(max)");
+
+                    b.Property<bool>("IsDeleted")
+                        .HasColumnType("bit");
 
                     b.Property<string>("Model")
                         .HasColumnType("nvarchar(max)");
 
                     b.Property<decimal>("Price")
+                        .HasPrecision(18, 2)
                         .HasColumnType("decimal(18,2)");
 
                     b.Property<int>("Year")
@@ -63,6 +71,9 @@ namespace MotorInsurance.API.Migrations
 
                     SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
 
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime2");
+
                     b.Property<string>("Description")
                         .HasColumnType("nvarchar(max)");
 
@@ -70,6 +81,7 @@ namespace MotorInsurance.API.Migrations
                         .HasColumnType("int");
 
                     b.Property<string>("Status")
+                        .IsRequired()
                         .HasColumnType("nvarchar(max)");
 
                     b.Property<int>("UserId")
@@ -92,16 +104,29 @@ namespace MotorInsurance.API.Migrations
 
                     SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
 
+                    b.Property<DateTime?>("DeletedAt")
+                        .HasColumnType("datetime2");
+
                     b.Property<string>("Email")
                         .HasColumnType("nvarchar(max)");
 
                     b.Property<string>("FullName")
                         .HasColumnType("nvarchar(max)");
 
+                    b.Property<bool>("IsDeleted")
+                        .HasColumnType("bit");
+
                     b.Property<string>("PhoneNumber")
                         .HasColumnType("nvarchar(max)");
 
+                    b.Property<int?>("UserId")
+                        .HasColumnType("int");
+
                     b.HasKey("Id");
+
+                    b.HasIndex("UserId")
+                        .IsUnique()
+                        .HasFilter("[UserId] IS NOT NULL");
 
                     b.ToTable("Clients");
                 });
@@ -149,6 +174,7 @@ namespace MotorInsurance.API.Migrations
                         .HasColumnType("bit");
 
                     b.Property<decimal>("Price")
+                        .HasPrecision(18, 2)
                         .HasColumnType("decimal(18,2)");
 
                     b.HasKey("Id");
@@ -251,6 +277,15 @@ namespace MotorInsurance.API.Migrations
                     b.Navigation("User");
                 });
 
+            modelBuilder.Entity("MotorInsurance.API.Models.Client", b =>
+                {
+                    b.HasOne("MotorInsurance.API.Models.User", "User")
+                        .WithOne("Client")
+                        .HasForeignKey("MotorInsurance.API.Models.Client", "UserId");
+
+                    b.Navigation("User");
+                });
+
             modelBuilder.Entity("MotorInsurance.API.Models.Policy", b =>
                 {
                     b.HasOne("MotorInsurance.API.Models.Quote", "Quote")
@@ -302,6 +337,11 @@ namespace MotorInsurance.API.Migrations
             modelBuilder.Entity("MotorInsurance.API.Models.Quote", b =>
                 {
                     b.Navigation("Policy");
+                });
+
+            modelBuilder.Entity("MotorInsurance.API.Models.User", b =>
+                {
+                    b.Navigation("Client");
                 });
 #pragma warning restore 612, 618
         }

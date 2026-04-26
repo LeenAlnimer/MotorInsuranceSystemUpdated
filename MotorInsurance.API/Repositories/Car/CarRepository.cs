@@ -1,4 +1,4 @@
-﻿using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore;
 using MotorInsurance.API.Data;
 using MotorInsurance.API.Models;
 
@@ -9,14 +9,24 @@ namespace MotorInsurance.API.Repositories.Car
         private readonly ApplicationDbContext _context;
 
         public CarRepository(ApplicationDbContext context)
-        {   
+        {
             _context = context;
         }
+
+        public IQueryable<Models.Car> GetQueryable() => _context.Cars.AsQueryable();
 
         public async Task<List<Models.Car>> GetAllAsync()
         {
             return await _context.Cars
                 .Include(c => c.Quotes)
+                .ToListAsync();
+        }
+
+        public async Task<List<Models.Car>> GetByClientIdAsync(int clientId)
+        {
+            return await _context.Cars
+                .Include(c => c.Quotes)
+                .Where(c => c.ClientId == clientId)
                 .ToListAsync();
         }
 
@@ -39,7 +49,8 @@ namespace MotorInsurance.API.Repositories.Car
 
         public void Delete(Models.Car car)
         {
-            _context.Cars.Remove(car);
+            car.IsDeleted = true;
+            car.DeletedAt = DateTime.UtcNow;
         }
 
         public async Task SaveChangesAsync()

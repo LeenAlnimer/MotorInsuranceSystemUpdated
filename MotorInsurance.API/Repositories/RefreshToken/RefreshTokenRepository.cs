@@ -1,4 +1,4 @@
-﻿using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore;
 using MotorInsurance.API.Data;
 
 namespace MotorInsurance.API.Repositories.RefreshToken
@@ -17,9 +17,20 @@ namespace MotorInsurance.API.Repositories.RefreshToken
             return await _context.RefreshTokens.ToListAsync();
         }
 
+        public async Task<Models.RefreshToken?> GetByTokenAsync(string token)
+        {
+            return await _context.RefreshTokens
+                .FirstOrDefaultAsync(t => t.Token == token);
+        }
+
         public async Task AddAsync(Models.RefreshToken token)
         {
             await _context.RefreshTokens.AddAsync(token);
+        }
+
+        public async Task DeleteAsync(Models.RefreshToken token)
+        {
+            _context.RefreshTokens.Remove(token);
         }
 
         public async Task<bool> UserExists(int userId)

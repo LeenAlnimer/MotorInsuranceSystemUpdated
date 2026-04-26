@@ -1,0 +1,14 @@
+﻿using MotorInsurance.API.Models;
+
+namespace MotorInsurance.API.Repositories.User
+{
+    public interface IUserRepository
+    {
+        Task<List<User>> GetAllAsync();
+        Task AddAsync(User user);
+        Task<bool> ExistsAsync(int id);
+        Task SaveChangesAsync();
+
+        Task<User?> GetByUsernameAsync(string username);
+    }
+}

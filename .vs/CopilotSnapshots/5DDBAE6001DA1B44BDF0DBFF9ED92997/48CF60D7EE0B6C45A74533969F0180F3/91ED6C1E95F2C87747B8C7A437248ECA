@@ -1,0 +1,89 @@
+﻿using MotorInsurance.API.DTOs.Quote;
+using MotorInsurance.API.Repositories.Quote;
+using MotorInsurance.API.Repositories.Car;
+using MotorInsurance.API.Models;
+
+namespace MotorInsurance.API.Services.Quote
+{
+    public class QuoteService : IQuoteService
+    {
+        private readonly IQuoteRepository _quoteRepository;
+        private readonly ICarRepository _carRepository;
+
+        public QuoteService(IQuoteRepository quoteRepository, ICarRepository carRepository)
+        {
+            _quoteRepository = quoteRepository;
+            _carRepository = carRepository;
+        }
+
+        public async Task<QuoteResponseDto> CreateAsync(CreateQuoteDto dto)
+        {
+            // 1️⃣ Get Car
+            var car = await _carRepository.GetByIdAsync(dto.CarId);
+
+            if (car == null)
+                throw new Exception("Car not found");
+
+            var currentYear = DateTime.Now.Year;
+            var carAge = currentYear - car.Year;
+
+            // 2️⃣ Eligibility Rules
+            if (carAge > 10)
+                throw new Exception("Car not eligible (too old)");
+
+            if (car.Year < 2000)
+                throw new Exception("Car year is too old");
+
+            // 3️⃣ Pricing Engine
+            decimal price = car.Price * 0.05m;
+
+            // Age Factor
+            if (carAge <= 3)
+                price *= 1.2m;
+            else if (carAge >= 8)
+                price *= 0.9m;
+
+            // Price Factor
+            if (car.Price > 30000)
+                price *= 1.1m;
+            else if (car.Price < 10000)
+                price *= 0.95m;
+
+            // Fuel Type Risk
+            if (!string.IsNullOrEmpty(car.FuelType))
+            {
+                var fuel = car.FuelType.ToLower();
+
+                if (fuel == "electric")
+                    price *= 0.9m;
+                else if (fuel == "diesel")
+                    price *= 1.1m;
+            }
+
+            // Minimum Price
+            if (price < 300)
+                price = 300;
+
+            // 4️⃣ Create Quote
+            var quote = new Quote
+            {
+                CarId = car.Id,
+                Price = price,
+                CreatedAt = DateTime.UtcNow,
+                IsApproved = false
+            };
+
+            await _quoteRepository.AddAsync(quote);
+            await _quoteRepository.SaveChangesAsync();
+
+            // 5️⃣ Response
+            return new QuoteResponseDto
+            {
+                Id = quote.Id,
+                Price = quote.Price,
+                CreatedAt = quote.CreatedAt,
+                IsApproved = quote.IsApproved
+            };
+        }
+    }
+}

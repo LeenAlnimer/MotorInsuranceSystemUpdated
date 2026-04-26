@@ -1,0 +1,5 @@
+﻿using MotorInsurance.API.DTOs.User;
+using MotorInsurance.API.Models;
+
+Task<User> CreateAsync(CreateUserDto dto);
+Task<(string Token, User User)> LoginAsync(LoginDto dto);

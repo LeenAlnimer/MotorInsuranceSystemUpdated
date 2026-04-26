@@ -1,0 +1,13 @@
+﻿using MotorInsurance.API.Models;
+
+namespace MotorInsurance.API.Repositories.User
+{
+    public interface IUserRepository
+    {
+        Task<Models.User?> GetByEmailAsync(string email);
+        Task<Models.User?> GetByPhoneAsync(string phone);
+        Task<Models.User?> GetByIdentifierAsync(string identifier);
+        Task AddAsync(Models.User user);
+        Task SaveChangesAsync();
+    }
+}

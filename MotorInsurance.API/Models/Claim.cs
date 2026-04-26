@@ -1,13 +1,14 @@
-﻿using System.Text.Json.Serialization;
+using System.Text.Json.Serialization;
+using MotorInsurance.API.Common;
 
 namespace MotorInsurance.API.Models
 {
     public class Claim
     {
         public int Id { get; set; }
-
         public string? Description { get; set; }
-        public string? Status { get; set; }
+        public ClaimStatus Status { get; set; } = ClaimStatus.Pending;
+        public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
 
         public int PolicyId { get; set; }
 

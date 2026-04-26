@@ -162,3 +162,11 @@ C:\Users\l.alnimer\OneDrive - gig Jordan\Desktop\MotorInsuranceSystem\MotorInsur
 C:\Users\l.alnimer\OneDrive - gig Jordan\Desktop\MotorInsuranceSystem\MotorInsurance.API\bin\Debug\net10.0\MotorInsurance.API.pdb
 C:\Users\l.alnimer\OneDrive - gig Jordan\Desktop\MotorInsuranceSystem\MotorInsurance.API\obj\Debug\net10.0\MotorInsurance.API.genruntimeconfig.cache
 C:\Users\l.alnimer\OneDrive - gig Jordan\Desktop\MotorInsuranceSystem\MotorInsurance.API\obj\Debug\net10.0\ref\MotorInsurance.API.dll
+C:\Users\l.alnimer\OneDrive - gig Jordan\Desktop\MotorInsuranceSystem\MotorInsurance.API\bin\Debug\net10.0\Scalar.AspNetCore.dll
+C:\Users\l.alnimer\OneDrive - gig Jordan\Desktop\MotorInsuranceSystem\MotorInsurance.API\bin\Debug\net10.0\Asp.Versioning.Abstractions.dll
+C:\Users\l.alnimer\OneDrive - gig Jordan\Desktop\MotorInsuranceSystem\MotorInsurance.API\bin\Debug\net10.0\Asp.Versioning.Http.dll
+C:\Users\l.alnimer\OneDrive - gig Jordan\Desktop\MotorInsuranceSystem\MotorInsurance.API\bin\Debug\net10.0\Asp.Versioning.Mvc.dll
+C:\Users\l.alnimer\OneDrive - gig Jordan\Desktop\MotorInsuranceSystem\MotorInsurance.API\bin\Debug\net10.0\BouncyCastle.Cryptography.dll
+C:\Users\l.alnimer\OneDrive - gig Jordan\Desktop\MotorInsuranceSystem\MotorInsurance.API\bin\Debug\net10.0\MailKit.dll
+C:\Users\l.alnimer\OneDrive - gig Jordan\Desktop\MotorInsuranceSystem\MotorInsurance.API\bin\Debug\net10.0\Microsoft.Extensions.Diagnostics.HealthChecks.EntityFrameworkCore.dll
+C:\Users\l.alnimer\OneDrive - gig Jordan\Desktop\MotorInsuranceSystem\MotorInsurance.API\bin\Debug\net10.0\MimeKit.dll

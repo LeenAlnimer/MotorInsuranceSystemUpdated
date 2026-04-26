@@ -1,0 +1,36 @@
+﻿using Microsoft.AspNetCore.Mvc;
+using MotorInsurance.API.Models;
+using MotorInsurance.API.Services.Claim;
+
+namespace MotorInsurance.API.Controllers
+{
+    [Route("api/[controller]")]
+    [ApiController]
+    public class ClaimsController : ControllerBase
+    {
+        private readonly IClaimService _service;
+
+        public ClaimsController(IClaimService service)
+        {
+            _service = service;
+        }
+
+        [HttpGet]
+        public async Task<IActionResult> GetAll()
+        {
+            var claims = await _service.GetAllAsync();
+            return Ok(claims);
+        }
+
+        [HttpPost]
+        public async Task<IActionResult> Add(Claim claim)
+        {
+            var result = await _service.CreateAsync(claim);
+
+            if (!result.Success)
+                return BadRequest(result.Message);
+
+            return Ok(result.Claim);
+        }
+    }
+}

@@ -1,0 +1,10 @@
+﻿using MotorInsurance.API.Models;
+
+namespace MotorInsurance.API.Services.Claim
+{
+    public interface IClaimService
+    {
+        Task<List<MotorInsurance.API.Models.Claim>> GetAllAsync();
+        Task<(bool Success, string Message, MotorInsurance.API.Models.Claim? Claim)> CreateAsync(MotorInsurance.API.Models.Claim claim);
+    }
+}

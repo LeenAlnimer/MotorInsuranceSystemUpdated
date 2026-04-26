@@ -1,7 +1,10 @@
-﻿using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using MotorInsurance.API.Common;
 using MotorInsurance.API.DTOs.Claim;
+using MotorInsurance.API.DTOs.QueryParams;
 using MotorInsurance.API.Services.Claim;
+using System.Security.Claims;
 
 namespace MotorInsurance.API.Controllers
 {
@@ -17,47 +20,93 @@ namespace MotorInsurance.API.Controllers
             _service = service;
         }
 
-        // GET ALL
         [HttpGet]
-        public async Task<IActionResult> GetAll()
+        [ProducesResponseType(200)]
+        [ProducesResponseType(401)]
+        public async Task<IActionResult> GetAll([FromQuery] ClaimQueryParams queryParams)
         {
-            return Ok(await _service.GetAllAsync());
+            var role = User.FindFirst(ClaimTypes.Role)?.Value;
+
+            if (role == AppRoles.Client)
+            {
+                var userId = int.Parse(User.FindFirst(ClaimTypes.NameIdentifier)!.Value);
+                return Ok(await _service.GetPagedByUserIdAsync(userId, queryParams));
+            }
+
+            return Ok(await _service.GetPagedAsync(queryParams));
         }
 
-        // GET BY ID
         [HttpGet("{id}")]
+        [ProducesResponseType(200)]
+        [ProducesResponseType(401)]
+        [ProducesResponseType(403)]
+        [ProducesResponseType(404)]
         public async Task<IActionResult> GetById(int id)
         {
             var claim = await _service.GetByIdAsync(id);
-
             if (claim == null)
-                return NotFound();
+                return NotFound(new { errorCode = 404, errorDesc = "Claim not found" });
+
+            if (User.FindFirst(ClaimTypes.Role)?.Value == AppRoles.Client)
+            {
+                var userId = int.Parse(User.FindFirst(ClaimTypes.NameIdentifier)!.Value);
+                if (claim.UserId != userId)
+                    return Forbid();
+            }
 
             return Ok(claim);
         }
 
-        // CREATE
         [HttpPost]
+        [ProducesResponseType(201)]
+        [ProducesResponseType(400)]
+        [ProducesResponseType(401)]
         public async Task<IActionResult> Add(CreateClaimDto dto)
         {
-            var result = await _service.CreateAsync(dto);
-
+            var userId = int.Parse(User.FindFirst(ClaimTypes.NameIdentifier)!.Value);
+            var result = await _service.CreateAsync(dto, userId);
             if (!result.Success)
-                return BadRequest(new { message = result.Message });
-
-            return Ok(result.Claim);
+                return BadRequest(new { errorCode = 400, errorDesc = result.Message });
+            return CreatedAtAction(nameof(GetById), new { id = result.Claim!.Id }, result.Claim);
         }
 
-        // DELETE
+        [Authorize(Roles = "Admin,Employee")]
+        [HttpPost("{id}/approve")]
+        [ProducesResponseType(200)]
+        [ProducesResponseType(401)]
+        [ProducesResponseType(404)]
+        public async Task<IActionResult> Approve(int id)
+        {
+            var result = await _service.ApproveAsync(id);
+            if (!result)
+                return NotFound(new { errorCode = 404, errorDesc = "Claim not found" });
+            return Ok(new { message = "Claim approved" });
+        }
+
+        [Authorize(Roles = "Admin,Employee")]
+        [HttpPost("{id}/reject")]
+        [ProducesResponseType(200)]
+        [ProducesResponseType(401)]
+        [ProducesResponseType(404)]
+        public async Task<IActionResult> Reject(int id)
+        {
+            var result = await _service.RejectAsync(id);
+            if (!result)
+                return NotFound(new { errorCode = 404, errorDesc = "Claim not found" });
+            return Ok(new { message = "Claim rejected" });
+        }
+
+        [Authorize(Roles = "Admin")]
         [HttpDelete("{id}")]
+        [ProducesResponseType(204)]
+        [ProducesResponseType(401)]
+        [ProducesResponseType(404)]
         public async Task<IActionResult> Delete(int id)
         {
             var deleted = await _service.DeleteAsync(id);
-
             if (!deleted)
-                return NotFound();
-
-            return Ok(new { message = "Claim deleted successfully" });
+                return NotFound(new { errorCode = 404, errorDesc = "Claim not found" });
+            return NoContent();
         }
     }
 }

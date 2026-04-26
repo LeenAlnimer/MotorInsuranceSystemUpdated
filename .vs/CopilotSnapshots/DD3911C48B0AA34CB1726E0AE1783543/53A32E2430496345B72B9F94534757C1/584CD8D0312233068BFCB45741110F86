@@ -1,0 +1,10 @@
+﻿using MotorInsurance.API.Models;
+
+namespace MotorInsurance.API.Services.RefreshToken
+{
+    public interface IRefreshTokenService
+    {
+        Task<List<RefreshToken>> GetAllAsync();
+        Task<(bool Success, string Message, RefreshToken? Token)> CreateAsync(RefreshToken token);
+    }
+}

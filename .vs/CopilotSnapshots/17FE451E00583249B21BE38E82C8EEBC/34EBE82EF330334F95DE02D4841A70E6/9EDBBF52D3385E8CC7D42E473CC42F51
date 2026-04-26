@@ -1,0 +1,62 @@
+﻿using MotorInsurance.API.Models;
+using MotorInsurance.API.Repositories.Client;
+
+namespace MotorInsurance.API.Services.Client
+{
+    public class ClientService : IClientService
+    {
+        private readonly IClientRepository _repository;
+
+        public ClientService(IClientRepository repository)
+        {
+            _repository = repository;
+        }
+
+        public async Task<List<Client>> GetAllAsync()
+        {
+            return await _repository.GetAllAsync();
+        }
+
+        public async Task<Client?> GetByIdAsync(int id)
+        {
+            return await _repository.GetByIdAsync(id);
+        }
+
+        public async Task<Client> CreateAsync(Client client)
+        {
+            await _repository.AddAsync(client);
+            await _repository.SaveChangesAsync();
+            return client;
+        }
+
+        public async Task<bool> UpdateAsync(int id, Client updatedClient)
+        {
+            var client = await _repository.GetByIdAsync(id);
+
+            if (client == null)
+                return false;
+
+            client.FullName = updatedClient.FullName;
+            client.Email = updatedClient.Email;
+            client.PhoneNumber = updatedClient.PhoneNumber;
+
+            _repository.Update(client);
+            await _repository.SaveChangesAsync();
+
+            return true;
+        }
+
+        public async Task<bool> DeleteAsync(int id)
+        {
+            var client = await _repository.GetByIdAsync(id);
+
+            if (client == null)
+                return false;
+
+            _repository.Delete(client);
+            await _repository.SaveChangesAsync();
+
+            return true;
+        }
+    }
+}

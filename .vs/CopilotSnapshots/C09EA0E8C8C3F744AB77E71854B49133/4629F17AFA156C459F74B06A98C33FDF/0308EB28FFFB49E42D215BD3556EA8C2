@@ -1,0 +1,52 @@
+﻿using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Mvc;
+using MotorInsurance.API.DTOs.User;
+using MotorInsurance.API.Services.User;
+
+namespace MotorInsurance.API.Controllers
+{
+    [ApiController]
+    [Route("api/[controller]")]
+    [AllowAnonymous]
+    public class UsersController : ControllerBase
+    {
+        private readonly IUserService _userService;
+
+        public UsersController(IUserService userService)
+        {
+            _userService = userService;
+        }
+
+        [HttpPost("register")]
+        public async Task<IActionResult> Register(CreateUserDto dto)
+        {
+            if (!ModelState.IsValid)
+                return BadRequest(ModelState);
+
+            var user = await _userService.CreateAsync(dto);
+
+            return Ok(new
+            {
+                user.Id,
+                user.Username,
+                user.Email,
+                user.PhoneNumber
+            });
+        }
+
+        [HttpPost("login")]
+        public async Task<IActionResult> Login(LoginDto dto)
+        {
+            if (!ModelState.IsValid)
+                return BadRequest(ModelState);
+
+            var result = await _userService.LoginAsync(dto);
+
+            return Ok(new
+            {
+                token = result.Token,
+                user = result.User
+            });
+        }
+    }
+}

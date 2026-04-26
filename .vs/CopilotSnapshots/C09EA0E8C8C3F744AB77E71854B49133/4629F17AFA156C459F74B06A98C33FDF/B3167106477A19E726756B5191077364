@@ -1,0 +1,59 @@
+﻿using MotorInsurance.API.Models;
+using MotorInsurance.API.Repositories.User;
+using MotorInsurance.API.DTOs.User;
+using MotorInsurance.API.Services.Auth;
+using BCrypt.Net;
+
+namespace MotorInsurance.API.Services.User
+{
+    public class UserService : IUserService
+    {
+        private readonly IUserRepository _repository;
+        private readonly JwtService _jwtService;
+
+        public UserService(IUserRepository repository, JwtService jwtService)
+        {
+            _repository = repository;
+            _jwtService = jwtService;
+        }
+
+        public async Task<Models.User> CreateAsync(CreateUserDto dto)
+        {
+            if (await _repository.GetByEmailAsync(dto.Email) is not null)
+                throw new Exception("Email already exists");
+
+            if (await _repository.GetByPhoneAsync(dto.PhoneNumber) is not null)
+                throw new Exception("Phone already exists");
+
+            var hashedPassword = BCrypt.Net.BCrypt.HashPassword(dto.Password);
+
+            var user = new Models.User
+            {
+                Username = dto.Username.Trim(),
+                Email = dto.Email.Trim(),
+                PhoneNumber = dto.PhoneNumber,
+                Password = hashedPassword
+            };
+
+            await _repository.AddAsync(user);
+            await _repository.SaveChangesAsync();
+
+            return user;
+        }
+
+        public async Task<(string Token, Models.User User)> LoginAsync(LoginDto dto)
+        {
+            var user = await _repository.GetByIdentifierAsync(dto.Identifier);
+
+            if (user is null)
+                throw new Exception("Invalid credentials");
+
+            if (!BCrypt.Net.BCrypt.Verify(dto.Password, user.Password))
+                throw new Exception("Invalid credentials");
+
+            var token = _jwtService.GenerateToken(user.Id, user.Username, user.Role);
+
+            return (token, user);
+        }
+    }
+}

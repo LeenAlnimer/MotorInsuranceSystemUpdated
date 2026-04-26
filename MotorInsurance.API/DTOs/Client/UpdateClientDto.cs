@@ -1,9 +1,16 @@
-﻿namespace MotorInsurance.API.DTOs.Client
+﻿using System.ComponentModel.DataAnnotations;
+
+namespace MotorInsurance.API.DTOs.Client
 {
     public class UpdateClientDto
     {
-        public string FullName { get; set; }
-        public string Email { get; set; }
+        [MinLength(2)]
+        public string? FullName { get; set; }
+
+        [EmailAddress]
+        public string? Email { get; set; }
+
+        [RegularExpression(@"^07[789]\d{7}$", ErrorMessage = "Invalid Jordanian phone number")]
         public string? PhoneNumber { get; set; }
     }
 }

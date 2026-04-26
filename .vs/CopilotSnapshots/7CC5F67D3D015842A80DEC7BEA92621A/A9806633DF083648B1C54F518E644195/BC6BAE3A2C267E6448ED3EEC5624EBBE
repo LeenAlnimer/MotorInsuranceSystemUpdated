@@ -1,0 +1,45 @@
+﻿using MotorInsurance.API.DTOs.Policy;
+using MotorInsurance.API.Repositories.Policy;
+using MotorInsurance.API.Data;
+using Microsoft.EntityFrameworkCore;
+
+namespace MotorInsurance.API.Services.Policy
+{
+    public class PolicyService : IPolicyService
+    {
+        private readonly IPolicyRepository _repository;
+        private readonly ApplicationDbContext _context;
+
+        public PolicyService(IPolicyRepository repository, ApplicationDbContext context)
+        {
+            _repository = repository;
+            _context = context;
+        }
+
+        public async Task<PolicyResponseDto> CreateAsync(CreatePolicyDto dto)
+        {
+            var quote = await _context.Quotes
+                .FirstOrDefaultAsync(q => q.Id == dto.QuoteId);
+
+            if (quote == null)
+                throw new Exception("Quote not found");
+
+            var policy = new Models.Policy
+            {
+                QuoteId = quote.Id,
+                StartDate = DateTime.Now,
+                EndDate = DateTime.Now.AddYears(1)
+            };
+
+            await _repository.AddAsync(policy);
+            await _repository.SaveChangesAsync();
+
+            return new PolicyResponseDto
+            {
+                Id = policy.Id,
+                StartDate = policy.StartDate,
+                EndDate = policy.EndDate
+            };
+        }
+    }
+}

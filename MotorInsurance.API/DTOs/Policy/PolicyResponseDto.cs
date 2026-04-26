@@ -9,9 +9,9 @@
 
         public int QuoteId { get; set; }
 
-        public string ClientName { get; set; }
-        public string CarBrand { get; set; }
-        public string CarModel { get; set; }
+        public string? ClientName { get; set; }
+        public string? CarBrand { get; set; }
+        public string? CarModel { get; set; }
 
         public decimal Price { get; set; }
     }

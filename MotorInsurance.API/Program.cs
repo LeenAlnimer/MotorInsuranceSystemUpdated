@@ -1,4 +1,5 @@
 using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.AspNetCore.RateLimiting;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
@@ -23,7 +24,11 @@ using MotorInsurance.API.Services.Quote;
 using MotorInsurance.API.Services.RefreshToken;
 using MotorInsurance.API.Services.User;
 
+using MotorInsurance.API.Common;
+using MotorInsurance.API.Middleware;
+using MotorInsurance.API.Services.Email;
 using System.Text;
+using System.Threading.RateLimiting;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -68,6 +73,17 @@ builder.Services.AddScoped<IRefreshTokenService, RefreshTokenService>();
 // JWT Service
 builder.Services.AddScoped<JwtService>();
 
+// Insurance Pricing Settings
+builder.Services.Configure<InsurancePricingSettings>(
+    builder.Configuration.GetSection("InsurancePricing"));
+
+// Email Service
+builder.Services.AddScoped<IEmailService, EmailService>();
+
+// Health Checks
+builder.Services.AddHealthChecks()
+    .AddDbContextCheck<ApplicationDbContext>("database");
+
 builder.Services.AddEndpointsApiExplorer();
 
 //  Swagger + JWT
@@ -100,7 +116,9 @@ builder.Services.AddSwaggerGen(options =>
 });
 
 // JWT CONFIG from appsettings.json
-var key = builder.Configuration["Jwt:Key"];
+var jwtKey = builder.Configuration["Jwt:Key"]!;
+var jwtIssuer = builder.Configuration["Jwt:Issuer"]!;
+var jwtAudience = builder.Configuration["Jwt:Audience"]!;
 
 builder.Services.AddAuthentication(options =>
 {
@@ -111,15 +129,29 @@ builder.Services.AddAuthentication(options =>
 {
     options.TokenValidationParameters = new TokenValidationParameters
     {
-        ValidateIssuer = false,
-        ValidateAudience = false,
+        ValidateIssuer = true,
+        ValidateAudience = true,
         ValidateLifetime = true,
         ValidateIssuerSigningKey = true,
-        IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(key))
+        ValidIssuer = jwtIssuer,
+        ValidAudience = jwtAudience,
+        IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwtKey))
     };
 });
 
 builder.Services.AddAuthorization();
+
+builder.Services.AddRateLimiter(options =>
+{
+    options.AddFixedWindowLimiter("login", opt =>
+    {
+        opt.PermitLimit = 5;
+        opt.Window = TimeSpan.FromMinutes(1);
+        opt.QueueProcessingOrder = QueueProcessingOrder.OldestFirst;
+        opt.QueueLimit = 0;
+    });
+    options.RejectionStatusCode = StatusCodes.Status429TooManyRequests;
+});
 
 var app = builder.Build();
 
@@ -129,14 +161,19 @@ if (app.Environment.IsDevelopment())
     app.UseSwaggerUI();
 }
 
+app.UseMiddleware<ExceptionHandlingMiddleware>();
+app.UseMiddleware<RequestLoggingMiddleware>();
+
 app.UseHttpsRedirection();
 
-//  Use CORS BEFORE Authentication
 app.UseCors("AllowFrontend");
+
+app.UseRateLimiter();
 
 app.UseAuthentication();
 app.UseAuthorization();
 
 app.MapControllers();
+app.MapHealthChecks("/health");
 
 app.Run();

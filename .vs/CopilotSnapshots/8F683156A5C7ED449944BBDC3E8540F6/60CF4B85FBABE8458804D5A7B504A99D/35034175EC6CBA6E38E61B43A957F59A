@@ -1,0 +1,36 @@
+﻿using MotorInsurance.API.Models;
+using MotorInsurance.API.Repositories.Claim;
+
+namespace MotorInsurance.API.Services.Claim
+{
+    public class ClaimService : IClaimService
+    {
+        private readonly IClaimRepository _repository;
+
+        public ClaimService(IClaimRepository repository)
+        {
+            _repository = repository;
+        }
+
+        public async Task<List<Claim>> GetAllAsync()
+        {
+            return await _repository.GetAllAsync();
+        }
+
+        public async Task<(bool Success, string Message, Claim? Claim)> CreateAsync(Claim claim)
+        {
+            var policyExists = await _repository.PolicyExists(claim.PolicyId);
+            if (!policyExists)
+                return (false, "Policy not found", null);
+
+            var userExists = await _repository.UserExists(claim.UserId);
+            if (!userExists)
+                return (false, "User not found", null);
+
+            await _repository.AddAsync(claim);
+            await _repository.SaveChangesAsync();
+
+            return (true, "Created", claim);
+        }
+    }
+}

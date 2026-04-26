@@ -1,4 +1,4 @@
-﻿using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore;
 using MotorInsurance.API.Data;
 
 namespace MotorInsurance.API.Repositories.Claim
@@ -12,9 +12,23 @@ namespace MotorInsurance.API.Repositories.Claim
             _context = context;
         }
 
+        public IQueryable<Models.Claim> GetQueryable() => _context.Claims.AsQueryable();
+
         public async Task<List<Models.Claim>> GetAllAsync()
         {
             return await _context.Claims.ToListAsync();
+        }
+
+        public async Task<List<Models.Claim>> GetByUserIdAsync(int userId)
+        {
+            return await _context.Claims
+                .Where(c => c.UserId == userId)
+                .ToListAsync();
+        }
+
+        public async Task<Models.Claim?> GetByIdAsync(int id)
+        {
+            return await _context.Claims.FindAsync(id);
         }
 
         public async Task AddAsync(Models.Claim claim)
@@ -32,10 +46,9 @@ namespace MotorInsurance.API.Repositories.Claim
             return await _context.Users.AnyAsync(u => u.Id == userId);
         }
 
-        public async Task DeleteAsync(Models.Claim claim)
+        public void Delete(Models.Claim claim)
         {
             _context.Claims.Remove(claim);
-            await _context.SaveChangesAsync();
         }
 
         public async Task SaveChangesAsync()

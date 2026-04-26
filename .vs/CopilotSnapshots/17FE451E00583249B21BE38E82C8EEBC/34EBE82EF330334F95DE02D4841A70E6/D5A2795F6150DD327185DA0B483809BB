@@ -1,0 +1,65 @@
+﻿using Microsoft.AspNetCore.Mvc;
+using MotorInsurance.API.Models;
+using MotorInsurance.API.Services.Client;
+
+namespace MotorInsurance.API.Controllers
+{
+    [Route("api/[controller]")]
+    [ApiController]
+    public class ClientsController : ControllerBase
+    {
+        private readonly IClientService _service;
+
+        public ClientsController(IClientService service)
+        {
+            _service = service;
+        }
+
+        [HttpGet]
+        public async Task<IActionResult> GetAll()
+        {
+            var clients = await _service.GetAllAsync();
+            return Ok(clients);
+        }
+
+        [HttpGet("{id}")]
+        public async Task<IActionResult> GetById(int id)
+        {
+            var client = await _service.GetByIdAsync(id);
+
+            if (client == null)
+                return NotFound();
+
+            return Ok(client);
+        }
+
+        [HttpPost]
+        public async Task<IActionResult> Add(Client client)
+        {
+            var newClient = await _service.CreateAsync(client);
+            return Ok(newClient);
+        }
+
+        [HttpPut("{id}")]
+        public async Task<IActionResult> Update(int id, Client client)
+        {
+            var updated = await _service.UpdateAsync(id, client);
+
+            if (!updated)
+                return NotFound();
+
+            return Ok(client);
+        }
+
+        [HttpDelete("{id}")]
+        public async Task<IActionResult> Delete(int id)
+        {
+            var deleted = await _service.DeleteAsync(id);
+
+            if (!deleted)
+                return NotFound();
+
+            return Ok("Deleted");
+        }
+    }
+}
