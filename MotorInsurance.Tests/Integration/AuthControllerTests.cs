@@ -13,7 +13,7 @@ namespace MotorInsurance.Tests.Integration
             _client = factory.CreateClient();
         }
 
-        // كل test يستخدم بيانات فريدة (email + phone) لتجنّب التعارض في نفس الـ DB
+        // Each test uses unique data (email + phone) to avoid conflicts in the same DB
         private static object MakeUser(string suffix, string phone) => new
         {
             FullName = $"Test User {suffix}",

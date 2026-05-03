@@ -188,7 +188,7 @@ namespace MotorInsurance.API.Services.Quote
             var quote = await _repository.GetByIdAsync(id);
             if (quote == null) return false;
 
-            // نمنع الحذف فقط لو في بوليصة نشطة - الملغية والمنتهية لا تمنع الحذف
+            // Deletion is blocked only when an active policy exists; cancelled or expired policies do not block it
             var hasActivePolicy = await _context.Policies
                 .AnyAsync(p => p.QuoteId == id && p.Status == PolicyStatus.Active);
             if (hasActivePolicy)

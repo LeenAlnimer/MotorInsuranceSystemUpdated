@@ -164,7 +164,7 @@ namespace MotorInsurance.API.Services.Policy
 
             policy.Status = PolicyStatus.Cancelled;
 
-            // رفض كل المطالبات المعلقة تلقائياً عند إلغاء البوليصة
+            // Auto-reject all pending claims when a policy is cancelled
             var pendingClaims = await _context.Claims
                 .Where(c => c.PolicyId == policyId && c.Status == ClaimStatus.Pending)
                 .ToListAsync();

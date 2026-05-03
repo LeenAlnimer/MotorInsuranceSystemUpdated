@@ -34,7 +34,7 @@ namespace MotorInsurance.API.Repositories.User
                 .FirstOrDefaultAsync(u => u.Username.ToLower() == username.ToLower());
         }
 
-        // ✅ مهم جداً: Login يحتاج Tracking للحصول على PasswordHash بشكل صحيح
+        // Login requires tracking to correctly retrieve PasswordHash
         public async Task<Models.User?> GetByIdentifierAsync(string identifier)
         {
             identifier = identifier.ToLower();

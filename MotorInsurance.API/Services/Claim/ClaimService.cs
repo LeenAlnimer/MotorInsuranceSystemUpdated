@@ -70,7 +70,7 @@ namespace MotorInsurance.API.Services.Claim
             if (car.UserId != userId)
                 return (false, "Policy does not belong to you", null);
 
-            // استخدام InsuredValue المحفوظ وقت إنشاء البوليصة - fallback لسعر السيارة الحالي للبوليصات القديمة
+            // Use InsuredValue saved at policy creation time; fall back to current car price for legacy policies
             var insuredValue = policy.InsuredValue > 0 ? policy.InsuredValue : car.Price;
 
             if (dto.ClaimAmount > insuredValue)
@@ -164,8 +164,8 @@ namespace MotorInsurance.API.Services.Claim
                 {
                     await _emailService.SendAsync(
                         user.Email,
-                        "تم الموافقة على مطالبتك — Motor Insurance",
-                        $"عزيزي {user.Username}،\n\nتم الموافقة على مطالبتك رقم #{claim.Id}.\n\nشكراً لثقتك بنا.");
+                        "Your Claim Has Been Approved — Motor Insurance",
+                        $"Dear {user.Username},\n\nYour claim #{claim.Id} has been approved.\n\nThank you for choosing us.");
                 }
                 catch (Exception ex)
                 {
@@ -198,8 +198,8 @@ namespace MotorInsurance.API.Services.Claim
                 {
                     await _emailService.SendAsync(
                         user.Email,
-                        "تم رفض مطالبتك — Motor Insurance",
-                        $"عزيزي {user.Username}،\n\nنأسف لإعلامك بأنه تم رفض مطالبتك رقم #{claim.Id}.\n\nللاستفسار يرجى التواصل معنا.");
+                        "Your Claim Has Been Rejected — Motor Insurance",
+                        $"Dear {user.Username},\n\nWe regret to inform you that your claim #{claim.Id} has been rejected.\n\nFor inquiries, please contact us.");
                 }
                 catch (Exception ex)
                 {
