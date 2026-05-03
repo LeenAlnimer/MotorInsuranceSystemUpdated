@@ -1,102 +1,96 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.AspNetCore.RateLimiting;
+using MotorInsurance.API.Common;
+using MotorInsurance.API.DTOs.QueryParams;
 using MotorInsurance.API.DTOs.User;
 using MotorInsurance.API.Services.User;
-using MotorInsurance.API.Services.RefreshToken;
 using System.Security.Claims;
 
 namespace MotorInsurance.API.Controllers
 {
     [ApiController]
-    [Route("api/[controller]")]
+    [Route("api/users")]
+    [Authorize]
     public class UsersController : ControllerBase
     {
         private readonly IUserService _userService;
-        private readonly IRefreshTokenService _refreshTokenService;
 
-        public UsersController(IUserService userService, IRefreshTokenService refreshTokenService)
+        public UsersController(IUserService userService)
         {
             _userService = userService;
-            _refreshTokenService = refreshTokenService;
         }
 
-        [AllowAnonymous]
-        [HttpPost("register")]
-        [ProducesResponseType(201)]
-        [ProducesResponseType(400)]
-        public async Task<IActionResult> Register(CreateUserDto dto)
-        {
-            if (!ModelState.IsValid)
-                return BadRequest(ModelState);
-
-            var user = await _userService.CreateAsync(dto);
-            return StatusCode(201, new { user.Id, user.Username, user.Email, user.PhoneNumber, user.Role });
-        }
-
-        [Authorize(Roles = "Admin")]
-        [HttpPost("create-employee")]
+        [Authorize(Roles = AppRoles.Admin)]
+        [HttpPost]
         [ProducesResponseType(201)]
         [ProducesResponseType(400)]
         [ProducesResponseType(401)]
-        public async Task<IActionResult> CreateEmployee(CreateEmployeeDto dto)
+        public async Task<IActionResult> CreateUser(CreateUserByAdminDto dto)
         {
-            if (!ModelState.IsValid)
-                return BadRequest(ModelState);
-
-            var user = await _userService.CreateEmployeeAsync(dto);
-            return StatusCode(201, new { user.Id, user.Username, user.Email, user.PhoneNumber, user.Role });
-        }
-
-        [AllowAnonymous]
-        [EnableRateLimiting("login")]
-        [HttpPost("login")]
-        [ProducesResponseType(200)]
-        [ProducesResponseType(400)]
-        public async Task<IActionResult> Login(LoginDto dto)
-        {
-            var result = await _userService.LoginAsync(dto);
-            return Ok(new
+            var user = await _userService.CreateByAdminAsync(dto);
+            return StatusCode(201, new
             {
-                token = result.Token,
-                refreshToken = result.RefreshToken,
-                user = new
-                {
-                    result.User.Id,
-                    result.User.Username,
-                    result.User.Email,
-                    result.User.PhoneNumber,
-                    result.User.Role
-                }
+                user.Id,
+                user.Username,
+                user.Email,
+                user.PhoneNumber,
+                user.Role,
+                user.DateCreated
             });
         }
 
-        [AllowAnonymous]
-        [HttpPost("refresh")]
+        [Authorize(Roles = AppRoles.Admin)]
+        [HttpGet]
+        [ProducesResponseType(200)]
+        [ProducesResponseType(401)]
+        public async Task<IActionResult> GetAll([FromQuery] UserQueryParams queryParams)
+        {
+            var paged = await _userService.GetAllAsync(queryParams);
+            return Ok(new
+            {
+                paged.Page,
+                paged.PageSize,
+                paged.TotalCount,
+                paged.TotalPages,
+                paged.HasNext,
+                paged.HasPrevious,
+                Data = paged.Data.Select(u => new
+                {
+                    u.Id,
+                    u.Username,
+                    u.Email,
+                    u.PhoneNumber,
+                    u.Role,
+                    u.DateCreated,
+                    u.LastLogin
+                })
+            });
+        }
+
+        [Authorize(Roles = AppRoles.Admin)]
+        [HttpPut("{id:int}/role")]
         [ProducesResponseType(200)]
         [ProducesResponseType(400)]
-        public async Task<IActionResult> Refresh(RefreshTokenRequestDto dto)
+        [ProducesResponseType(401)]
+        [ProducesResponseType(404)]
+        public async Task<IActionResult> UpdateRole(int id, UpdateUserRoleDto dto)
         {
-            var result = await _refreshTokenService.RefreshAsync(dto.RefreshToken);
-            if (!result.Success)
-                return BadRequest(new { errorCode = 400, errorDesc = result.Message });
+            var updated = await _userService.UpdateRoleAsync(id, dto.Role);
+            if (!updated)
+                return NotFound(new { errorCode = 404, errorDesc = "User not found" });
 
-            return Ok(new { token = result.NewToken, refreshToken = result.NewRefreshToken });
+            return Ok(new { message = $"User role updated to {dto.Role}" });
         }
 
-        [AllowAnonymous]
-        [HttpPost("logout")]
-        [ProducesResponseType(204)]
-        [ProducesResponseType(400)]
-        public async Task<IActionResult> Logout(RefreshTokenRequestDto dto)
+        [Authorize(Roles = AppRoles.Admin)]
+        [HttpGet("status")]
+        [ProducesResponseType(200)]
+        [ProducesResponseType(401)]
+        public async Task<IActionResult> GetStatus()
         {
-            var revoked = await _refreshTokenService.RevokeAsync(dto.RefreshToken);
-            if (!revoked)
-                return BadRequest(new { errorCode = 400, errorDesc = "Invalid refresh token" });
-            return NoContent();
+            return Ok(await _userService.GetStatusAsync());
         }
 
-        [Authorize]
         [HttpGet("me")]
         [ProducesResponseType(200)]
         [ProducesResponseType(401)]
@@ -120,16 +114,33 @@ namespace MotorInsurance.API.Controllers
             });
         }
 
-        [Authorize]
-        [HttpPut]
+        [HttpPut("me")]
         [ProducesResponseType(200)]
         [ProducesResponseType(400)]
         [ProducesResponseType(401)]
-        public async Task<IActionResult> Update(UpdateUserDto dto)
+        [ProducesResponseType(404)]
+        public async Task<IActionResult> UpdateMe(UpdateUserDto dto)
         {
             var userId = int.Parse(User.FindFirst(ClaimTypes.NameIdentifier)!.Value);
-            await _userService.UpdateAsync(userId, dto);
+            var updated = await _userService.UpdateAsync(userId, dto);
+            if (!updated)
+                return NotFound(new { errorCode = 404, errorDesc = "User not found" });
+
             return Ok(new { message = "Updated successfully" });
+        }
+
+        [Authorize(Roles = AppRoles.Admin)]
+        [HttpDelete("{id:int}")]
+        [ProducesResponseType(204)]
+        [ProducesResponseType(401)]
+        [ProducesResponseType(404)]
+        public async Task<IActionResult> Delete(int id)
+        {
+            var deleted = await _userService.DeleteAsync(id);
+            if (!deleted)
+                return NotFound(new { errorCode = 404, errorDesc = "User not found" });
+
+            return NoContent();
         }
     }
 }

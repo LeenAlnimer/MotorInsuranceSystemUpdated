@@ -1,4 +1,4 @@
-﻿using System;
+using MotorInsurance.API.Common;
 
 namespace MotorInsurance.API.DTOs.Quote
 {
@@ -8,6 +8,7 @@ namespace MotorInsurance.API.DTOs.Quote
         public int CarId { get; set; }
         public decimal Price { get; set; }
         public DateTime CreatedAt { get; set; }
-        public bool IsApproved { get; set; }
+        public DateTime ExpiresAt { get; set; }
+        public QuoteStatus Status { get; set; }
     }
 }

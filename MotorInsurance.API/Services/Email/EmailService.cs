@@ -19,10 +19,19 @@ namespace MotorInsurance.API.Services.Email
 
         public async Task SendAsync(string toEmail, string subject, string body)
         {
-            var host     = _config["Email:Host"]!;
-            var port     = int.Parse(_config["Email:Port"]!);
-            var from     = _config["Email:From"]!;
-            var password = _config["Email:Password"]!;
+            var host     = _config["Email:Host"];
+            var portStr  = _config["Email:Port"];
+            var from     = _config["Email:From"];
+            var password = _config["Email:Password"];
+
+            if (string.IsNullOrWhiteSpace(host) || string.IsNullOrWhiteSpace(portStr) ||
+                string.IsNullOrWhiteSpace(from) || string.IsNullOrWhiteSpace(password))
+            {
+                _logger.LogWarning("Email is not configured. Skipping email to {Email} | Subject: {Subject}", toEmail, subject);
+                return;
+            }
+
+            var port = int.Parse(portStr);
 
             var message = new MimeMessage();
             message.From.Add(MailboxAddress.Parse(from));

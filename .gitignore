@@ -1,0 +1,30 @@
+# Build output
+bin/
+obj/
+
+# Visual Studio
+.vs/
+*.user
+*.suo
+
+# Rider
+.idea/
+
+# VS Code
+.vscode/
+
+# Environment-specific settings
+appsettings.Development.json
+appsettings.*.json
+!appsettings.json
+
+# dotnet user-secrets
+secrets.json
+
+# OS
+.DS_Store
+Thumbs.db
+
+# NuGet
+*.nupkg
+packages/

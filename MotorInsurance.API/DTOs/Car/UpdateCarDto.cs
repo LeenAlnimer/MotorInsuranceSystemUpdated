@@ -1,27 +1,21 @@
-﻿using System.ComponentModel.DataAnnotations;
+using System.ComponentModel.DataAnnotations;
 using MotorInsurance.API.Common;
 
 namespace MotorInsurance.API.DTOs.Car
 {
     public class UpdateCarDto
     {
-        [Required]
-        public string Brand { get; set; } = null!;
+        public string? Brand { get; set; }
 
-        [Required]
-        public string Model { get; set; } = null!;
+        public string? Model { get; set; }
 
-        [Range(1900, 2100)]
-        public int Year { get; set; }
+        [Range(1900, 2100, ErrorMessage = "Year must be between 1900 and 2100")]
+        public int? Year { get; set; }
 
         [Range(1, double.MaxValue, ErrorMessage = "Price must be greater than 0")]
-        public decimal Price { get; set; }
+        public decimal? Price { get; set; }
 
-        [Required]
         [EnumDataType(typeof(FuelType))]
-        public FuelType FuelType { get; set; }
-
-        [Range(1, int.MaxValue, ErrorMessage = "ClientId must be a valid ID")]
-        public int ClientId { get; set; }
+        public FuelType? FuelType { get; set; }
     }
 }

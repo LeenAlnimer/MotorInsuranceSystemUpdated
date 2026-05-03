@@ -8,7 +8,7 @@ using System.Security.Claims;
 
 namespace MotorInsurance.API.Controllers
 {
-    [Route("api/[controller]")]
+    [Route("api/quotes")]
     [ApiController]
     [Authorize]
     public class QuotesController : ControllerBase
@@ -29,75 +29,78 @@ namespace MotorInsurance.API.Controllers
 
             if (role == AppRoles.Client)
             {
-                if (!int.TryParse(User.FindFirst("clientId")?.Value, out var clientId))
-                    return Unauthorized();
-                return Ok(await _service.GetPagedByClientIdAsync(clientId, queryParams));
+                var userId = int.Parse(User.FindFirst(ClaimTypes.NameIdentifier)!.Value);
+                return Ok(await _service.GetPagedByUserIdAsync(userId, queryParams));
             }
 
             return Ok(await _service.GetPagedAsync(queryParams));
         }
 
-        [HttpGet("{id}")]
+        [HttpGet("{id:int}")]
         [ProducesResponseType(200)]
         [ProducesResponseType(401)]
         [ProducesResponseType(404)]
         public async Task<IActionResult> GetById(int id)
         {
-            var result = await _service.GetByIdAsync(id);
+            int? restrictToUserId = null;
+            if (User.FindFirst(ClaimTypes.Role)?.Value == AppRoles.Client)
+                restrictToUserId = int.Parse(User.FindFirst(ClaimTypes.NameIdentifier)!.Value);
+
+            var result = await _service.GetByIdAsync(id, restrictToUserId);
             if (result == null)
                 return NotFound(new { errorCode = 404, errorDesc = "Quote not found" });
+
             return Ok(result);
         }
 
-        [HttpPost]
+        [HttpPost("generate")]
         [ProducesResponseType(201)]
         [ProducesResponseType(400)]
         [ProducesResponseType(401)]
-        [ProducesResponseType(403)]
-        public async Task<IActionResult> Create(CreateQuoteDto dto)
+        public async Task<IActionResult> Generate(CreateQuoteDto dto)
         {
-            int? clientId = null;
+            int? userId = null;
             if (User.FindFirst(ClaimTypes.Role)?.Value == AppRoles.Client)
-            {
-                if (!int.TryParse(User.FindFirst("clientId")?.Value, out var cId))
-                    return Unauthorized();
-                clientId = cId;
-            }
+                userId = int.Parse(User.FindFirst(ClaimTypes.NameIdentifier)!.Value);
 
-            var result = await _service.CreateAsync(dto, clientId);
+            var result = await _service.CreateAsync(dto, userId);
             return CreatedAtAction(nameof(GetById), new { id = result.Id }, result);
         }
 
         [Authorize(Roles = "Admin,Employee")]
-        [HttpPost("{id}/approve")]
+        [HttpPut("{id:int}/approve")]
         [ProducesResponseType(200)]
         [ProducesResponseType(400)]
         [ProducesResponseType(401)]
         [ProducesResponseType(404)]
+        [ProducesResponseType(409)]
         public async Task<IActionResult> Approve(int id)
         {
             var result = await _service.ApproveQuoteAsync(id);
             if (!result)
                 return NotFound(new { errorCode = 404, errorDesc = "Quote not found" });
-            return Ok(new { message = "Quote approved and policy created" });
+
+            return Ok(new { message = "Quote approved and policy created successfully" });
         }
 
         [Authorize(Roles = "Admin,Employee")]
-        [HttpPost("{id}/reject")]
+        [HttpPut("{id:int}/reject")]
         [ProducesResponseType(200)]
         [ProducesResponseType(400)]
         [ProducesResponseType(401)]
         [ProducesResponseType(404)]
+        [ProducesResponseType(409)]
         public async Task<IActionResult> Reject(int id)
         {
             var result = await _service.RejectQuoteAsync(id);
             if (!result)
                 return NotFound(new { errorCode = 404, errorDesc = "Quote not found" });
+
             return Ok(new { message = "Quote rejected" });
         }
 
-        [Authorize(Roles = "Admin")]
-        [HttpDelete("{id}")]
+        [Authorize(Roles = "Admin,Employee")]
+        [HttpDelete("{id:int}")]
         [ProducesResponseType(204)]
         [ProducesResponseType(401)]
         [ProducesResponseType(404)]
@@ -106,6 +109,7 @@ namespace MotorInsurance.API.Controllers
             var result = await _service.DeleteAsync(id);
             if (!result)
                 return NotFound(new { errorCode = 404, errorDesc = "Quote not found" });
+
             return NoContent();
         }
     }

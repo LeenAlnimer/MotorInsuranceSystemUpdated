@@ -51,8 +51,8 @@ namespace MotorInsurance.Tests.Services
                 {
                     Brand = "Toyota", Model = "Camry",
                     Year = DateTime.UtcNow.Year - 11,
-                    Price = 10000, FuelType = FuelType.Petrol, ClientId = 1
-                }));
+                    Price = 10000, FuelType = FuelType.Petrol
+                }, userId: 1));
         }
 
         [Fact]
@@ -65,29 +65,29 @@ namespace MotorInsurance.Tests.Services
             {
                 Brand = "Toyota", Model = "Camry",
                 Year = DateTime.UtcNow.Year - 2,
-                Price = 15000, FuelType = FuelType.Petrol, ClientId = 1
-            });
+                Price = 15000, FuelType = FuelType.Petrol
+            }, userId: 1);
 
             Assert.Equal("Toyota", result.Brand);
             Assert.Equal(15000m, result.Price);
         }
 
         [Fact]
-        public async Task GetPagedByClientIdAsync_ReturnsOnlyClientCars()
+        public async Task GetPagedByUserIdAsync_ReturnsOnlyUserCars()
         {
-            using var db = CreateDb(nameof(GetPagedByClientIdAsync_ReturnsOnlyClientCars));
+            using var db = CreateDb(nameof(GetPagedByUserIdAsync_ReturnsOnlyUserCars));
             db.Cars.AddRange(
-                new Car { Id = 1, Brand = "Toyota", Model = "Camry", Year = 2022, Price = 10000, FuelType = FuelType.Petrol, ClientId = 1 },
-                new Car { Id = 2, Brand = "Honda",  Model = "Civic",  Year = 2021, Price = 9000,  FuelType = FuelType.Petrol, ClientId = 2 },
-                new Car { Id = 3, Brand = "Kia",    Model = "Sportage", Year = 2020, Price = 8000, FuelType = FuelType.Diesel, ClientId = 1 }
+                new Car { Id = 1, Brand = "Toyota", Model = "Camry", Year = 2022, Price = 10000, FuelType = FuelType.Petrol, UserId = 1 },
+                new Car { Id = 2, Brand = "Honda",  Model = "Civic",  Year = 2021, Price = 9000,  FuelType = FuelType.Petrol, UserId = 2 },
+                new Car { Id = 3, Brand = "Kia",    Model = "Sportage", Year = 2020, Price = 8000, FuelType = FuelType.Diesel, UserId = 1 }
             );
             await db.SaveChangesAsync();
 
             var service = CreateService(db);
-            var result = await service.GetPagedByClientIdAsync(1, new CarQueryParams { Page = 1, PageSize = 10 });
+            var result = await service.GetPagedByUserIdAsync(1, new CarQueryParams { Page = 1, PageSize = 10 });
 
             Assert.Equal(2, result.TotalCount);
-            Assert.All(result.Data, c => Assert.Equal(1, c.ClientId));
+            Assert.All(result.Data, c => Assert.Equal(1, c.UserId));
         }
 
         [Fact]
@@ -95,9 +95,9 @@ namespace MotorInsurance.Tests.Services
         {
             using var db = CreateDb(nameof(GetPagedAsync_FilterByFuelType_ReturnsMatchingCars));
             db.Cars.AddRange(
-                new Car { Id = 1, Brand = "Toyota", Model = "Camry",   Year = 2022, Price = 10000, FuelType = FuelType.Electric, ClientId = 1 },
-                new Car { Id = 2, Brand = "Honda",  Model = "Civic",   Year = 2021, Price = 9000,  FuelType = FuelType.Petrol,   ClientId = 1 },
-                new Car { Id = 3, Brand = "Nissan", Model = "Leaf",    Year = 2023, Price = 12000, FuelType = FuelType.Electric, ClientId = 1 }
+                new Car { Id = 1, Brand = "Toyota", Model = "Camry",   Year = 2022, Price = 10000, FuelType = FuelType.Electric, UserId = 1 },
+                new Car { Id = 2, Brand = "Honda",  Model = "Civic",   Year = 2021, Price = 9000,  FuelType = FuelType.Petrol,   UserId = 1 },
+                new Car { Id = 3, Brand = "Nissan", Model = "Leaf",    Year = 2023, Price = 12000, FuelType = FuelType.Electric, UserId = 1 }
             );
             await db.SaveChangesAsync();
 
@@ -112,11 +112,11 @@ namespace MotorInsurance.Tests.Services
         public async Task DeleteAsync_SoftDeletesCar()
         {
             using var db = CreateDb(nameof(DeleteAsync_SoftDeletesCar));
-            db.Cars.Add(new Car { Id = 1, Brand = "Toyota", Model = "Camry", Year = 2022, Price = 10000, FuelType = FuelType.Petrol, ClientId = 1 });
+            db.Cars.Add(new Car { Id = 1, Brand = "Toyota", Model = "Camry", Year = 2022, Price = 10000, FuelType = FuelType.Petrol, UserId = 1 });
             await db.SaveChangesAsync();
 
             var service = CreateService(db);
-            var result = await service.DeleteAsync(1);
+            var result = await service.DeleteAsync(1, userId: 1);
 
             Assert.True(result);
             var car = await db.Cars.IgnoreQueryFilters().FirstAsync(c => c.Id == 1);
@@ -129,8 +129,8 @@ namespace MotorInsurance.Tests.Services
         {
             using var db = CreateDb(nameof(GetPagedAsync_DoesNotReturnDeletedCars));
             db.Cars.AddRange(
-                new Car { Id = 1, Brand = "Toyota", Model = "Camry", Year = 2022, Price = 10000, FuelType = FuelType.Petrol, ClientId = 1, IsDeleted = false },
-                new Car { Id = 2, Brand = "Honda",  Model = "Civic", Year = 2021, Price = 9000,  FuelType = FuelType.Petrol, ClientId = 1, IsDeleted = true  }
+                new Car { Id = 1, Brand = "Toyota", Model = "Camry", Year = 2022, Price = 10000, FuelType = FuelType.Petrol, UserId = 1, IsDeleted = false },
+                new Car { Id = 2, Brand = "Honda",  Model = "Civic", Year = 2021, Price = 9000,  FuelType = FuelType.Petrol, UserId = 1, IsDeleted = true  }
             );
             await db.SaveChangesAsync();
 
@@ -150,8 +150,8 @@ namespace MotorInsurance.Tests.Services
             var result = await service.UpdateAsync(999, new UpdateCarDto
             {
                 Brand = "X", Model = "Y", Year = 2022,
-                Price = 5000, FuelType = FuelType.Petrol, ClientId = 1
-            });
+                Price = 5000, FuelType = FuelType.Petrol
+            }, userId: 1);
 
             Assert.False(result);
         }

@@ -17,7 +17,7 @@ namespace MotorInsurance.API.Repositories.Quote
 
         public async Task<Models.Quote?> GetByIdAsync(int id)
         {
-            return await _context.Quotes.FindAsync(id);
+            return await _context.Quotes.FirstOrDefaultAsync(q => q.Id == id);
         }
 
         public async Task<Models.Quote?> GetByIdWithCarAsync(int id)
@@ -34,7 +34,8 @@ namespace MotorInsurance.API.Repositories.Quote
 
         public void Remove(Models.Quote quote)
         {
-            _context.Quotes.Remove(quote);
+            quote.IsDeleted = true;
+            quote.DeletedAt = DateTime.UtcNow;
         }
 
         public async Task SaveChangesAsync()

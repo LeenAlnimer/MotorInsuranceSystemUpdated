@@ -3,11 +3,11 @@ using Microsoft.AspNetCore.Mvc;
 using MotorInsurance.API.Common;
 using MotorInsurance.API.DTOs.QueryParams;
 using MotorInsurance.API.Services.Policy;
-using System.Security.Claims;
+using ClaimTypes = System.Security.Claims.ClaimTypes;
 
 namespace MotorInsurance.API.Controllers
 {
-    [Route("api/[controller]")]
+    [Route("api/policies")]
     [ApiController]
     [Authorize]
     public class PoliciesController : ControllerBase
@@ -28,42 +28,59 @@ namespace MotorInsurance.API.Controllers
 
             if (role == AppRoles.Client)
             {
-                if (!int.TryParse(User.FindFirst("clientId")?.Value, out var clientId))
-                    return Unauthorized();
-                return Ok(await _service.GetPagedByClientIdAsync(clientId, queryParams));
+                var userId = int.Parse(User.FindFirst(ClaimTypes.NameIdentifier)!.Value);
+                return Ok(await _service.GetPagedByUserIdAsync(userId, queryParams));
             }
 
             return Ok(await _service.GetPagedAsync(queryParams));
         }
 
-        [HttpGet("{id}")]
+        [HttpGet("{id:int}")]
         [ProducesResponseType(200)]
         [ProducesResponseType(401)]
+        [ProducesResponseType(403)]
         [ProducesResponseType(404)]
         public async Task<IActionResult> GetById(int id)
         {
             var result = await _service.GetByIdAsync(id);
             if (result == null)
                 return NotFound(new { errorCode = 404, errorDesc = "Policy not found" });
+
+            var role = User.FindFirst(ClaimTypes.Role)?.Value;
+            if (role == AppRoles.Client)
+            {
+                var userId = int.Parse(User.FindFirst(ClaimTypes.NameIdentifier)!.Value);
+                if (result.UserId != userId)
+                    return Forbid();
+            }
+
             return Ok(result);
         }
 
-        [HttpPost("{id}/cancel")]
         [Authorize(Roles = "Admin,Employee")]
-        [ProducesResponseType(200)]
+        [HttpPost("{id:int}/renew")]
+        [ProducesResponseType(201)]
         [ProducesResponseType(400)]
         [ProducesResponseType(401)]
         [ProducesResponseType(404)]
+        [ProducesResponseType(409)]
+        public async Task<IActionResult> Renew(int id)
+        {
+            var renewed = await _service.RenewAsync(id);
+            return StatusCode(201, renewed);
+        }
+
+        [Authorize(Roles = "Admin,Employee")]
+        [HttpPost("{id:int}/cancel")]
+        [ProducesResponseType(200)]
+        [ProducesResponseType(401)]
+        [ProducesResponseType(404)]
+        [ProducesResponseType(409)]
         public async Task<IActionResult> Cancel(int id)
         {
-            var (success, message) = await _service.CancelAsync(id);
-            if (!success)
-            {
-                if (message == "Policy not found")
-                    return NotFound(new { errorCode = 404, errorDesc = message });
-                return BadRequest(new { errorCode = 400, errorDesc = message });
-            }
-            return Ok(new { message });
+            var performedByUserId = int.Parse(User.FindFirst(ClaimTypes.NameIdentifier)!.Value);
+            var result = await _service.CancelAsync(id, performedByUserId);
+            return Ok(result);
         }
     }
 }

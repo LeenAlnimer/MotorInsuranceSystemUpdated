@@ -1,9 +1,10 @@
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using Moq;
 using MotorInsurance.API.Common;
+using MotorInsurance.API.Data;
 using MotorInsurance.API.DTOs.User;
 using MotorInsurance.API.Models;
-using MotorInsurance.API.Repositories.Client;
 using MotorInsurance.API.Repositories.RefreshToken;
 using MotorInsurance.API.Repositories.User;
 using MotorInsurance.API.Services.Auth;
@@ -15,7 +16,6 @@ namespace MotorInsurance.Tests.Services
     public class UserServiceTests
     {
         private readonly Mock<IUserRepository> _userRepo = new();
-        private readonly Mock<IClientRepository> _clientRepo = new();
         private readonly Mock<IRefreshTokenRepository> _refreshTokenRepo = new();
         private readonly Mock<ILogger<UserService>> _logger = new();
 
@@ -31,7 +31,13 @@ namespace MotorInsurance.Tests.Services
                 .Build();
 
             var jwtService = new JwtService(config);
-            return new UserService(_userRepo.Object, _clientRepo.Object, _refreshTokenRepo.Object, jwtService, _logger.Object);
+
+            var dbOptions = new DbContextOptionsBuilder<ApplicationDbContext>()
+                .UseInMemoryDatabase("UserServiceTest_" + Guid.NewGuid())
+                .Options;
+            var db = new ApplicationDbContext(dbOptions);
+
+            return new UserService(_userRepo.Object, _refreshTokenRepo.Object, jwtService, db, _logger.Object);
         }
 
         [Fact]
@@ -41,7 +47,7 @@ namespace MotorInsurance.Tests.Services
             var service = CreateService();
 
             await Assert.ThrowsAsync<ArgumentException>(() =>
-                service.LoginAsync(new LoginDto { Identifier = "nobody", Password = "wrong" }));
+                service.LoginAsync(new LoginDto { EmailOrPhone = "nobody", Password = "wrong" }));
         }
 
         [Fact]
@@ -59,7 +65,7 @@ namespace MotorInsurance.Tests.Services
             var service = CreateService();
 
             await Assert.ThrowsAsync<ArgumentException>(() =>
-                service.LoginAsync(new LoginDto { Identifier = "john", Password = "WrongPass1!" }));
+                service.LoginAsync(new LoginDto { EmailOrPhone = "john", Password = "WrongPass1!" }));
         }
 
         [Fact]
@@ -73,12 +79,11 @@ namespace MotorInsurance.Tests.Services
             };
             _userRepo.Setup(r => r.GetByIdentifierAsync("john")).ReturnsAsync(user);
             _userRepo.Setup(r => r.SaveChangesAsync()).Returns(Task.CompletedTask);
-            _clientRepo.Setup(r => r.GetByUserIdAsync(1)).ReturnsAsync(new Client { Id = 10, UserId = 1 });
             _refreshTokenRepo.Setup(r => r.AddAsync(It.IsAny<RefreshToken>())).Returns(Task.CompletedTask);
             _refreshTokenRepo.Setup(r => r.SaveChangesAsync()).Returns(Task.CompletedTask);
 
             var service = CreateService();
-            var (token, refreshToken, returnedUser) = await service.LoginAsync(new LoginDto { Identifier = "john", Password = "CorrectPass1!" });
+            var (token, refreshToken, returnedUser) = await service.LoginAsync(new LoginDto { EmailOrPhone = "john", Password = "CorrectPass1!" });
 
             Assert.NotEmpty(token);
             Assert.NotEmpty(refreshToken);
@@ -90,13 +95,11 @@ namespace MotorInsurance.Tests.Services
         {
             var user = new User { Id = 1, Username = "john", Email = "john@test.com", PhoneNumber = "0791234567", PasswordHash = "x", Role = AppRoles.Client };
             _userRepo.Setup(r => r.GetByIdAsync(1)).ReturnsAsync(user);
-            _userRepo.Setup(r => r.GetByEmailAsync("john@test.com")).ReturnsAsync(user); // same user
+            _userRepo.Setup(r => r.GetByEmailAsync("john@test.com")).ReturnsAsync(user);
             _userRepo.Setup(r => r.SaveChangesAsync()).Returns(Task.CompletedTask);
-            _clientRepo.Setup(r => r.GetByUserIdAsync(1)).ReturnsAsync((Client?)null);
 
             var service = CreateService();
 
-            // Should NOT throw — it's the same user's email
             var result = await service.UpdateAsync(1, new UpdateUserDto { Email = "john@test.com" });
             Assert.True(result);
         }

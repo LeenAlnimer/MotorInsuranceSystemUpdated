@@ -22,11 +22,11 @@ namespace MotorInsurance.API.Repositories.Car
                 .ToListAsync();
         }
 
-        public async Task<List<Models.Car>> GetByClientIdAsync(int clientId)
+        public async Task<List<Models.Car>> GetByUserIdAsync(int userId)
         {
             return await _context.Cars
                 .Include(c => c.Quotes)
-                .Where(c => c.ClientId == clientId)
+                .Where(c => c.UserId == userId)
                 .ToListAsync();
         }
 

@@ -1,4 +1,4 @@
-﻿using MotorInsurance.API.Common;
+using MotorInsurance.API.Common;
 
 namespace MotorInsurance.API.DTOs.Car
 {
@@ -10,6 +10,6 @@ namespace MotorInsurance.API.DTOs.Car
         public int Year { get; set; }
         public decimal Price { get; set; }
         public FuelType FuelType { get; set; }
-        public int ClientId { get; set; }
+        public int UserId { get; set; }
     }
 }

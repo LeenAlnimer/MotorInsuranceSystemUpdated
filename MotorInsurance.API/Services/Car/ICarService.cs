@@ -7,10 +7,10 @@ namespace MotorInsurance.API.Services.Car
     public interface ICarService
     {
         Task<PagedResult<CarResponseDto>> GetPagedAsync(CarQueryParams queryParams);
-        Task<PagedResult<CarResponseDto>> GetPagedByClientIdAsync(int clientId, CarQueryParams queryParams);
+        Task<PagedResult<CarResponseDto>> GetPagedByUserIdAsync(int userId, CarQueryParams queryParams);
         Task<CarResponseDto?> GetByIdAsync(int id);
-        Task<CarResponseDto> CreateAsync(CreateCarDto dto);
-        Task<bool> UpdateAsync(int id, UpdateCarDto dto);
-        Task<bool> DeleteAsync(int id);
+        Task<CarResponseDto> CreateAsync(CreateCarDto dto, int userId);
+        Task<bool> UpdateAsync(int id, UpdateCarDto dto, int userId);
+        Task<bool> DeleteAsync(int id, int userId);
     }
 }

@@ -7,6 +7,9 @@ namespace MotorInsurance.API.Models
     {
         public int Id { get; set; }
 
+        [MinLength(2)]
+        public string? FullName { get; set; }
+
         [Required, MinLength(3)]
         public string Username { get; set; } = null!;
 
@@ -27,7 +30,9 @@ namespace MotorInsurance.API.Models
 
         public DateTime? LastLogin { get; set; }
 
-        [JsonIgnore]
-        public Client? Client { get; set; }
+        public bool IsDeleted { get; set; } = false;
+        public DateTime? DeletedAt { get; set; }
+
+        public List<Car>? Cars { get; set; }
     }
 }

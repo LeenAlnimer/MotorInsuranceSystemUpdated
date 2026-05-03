@@ -9,5 +9,8 @@ namespace MotorInsurance.API.DTOs.Claim
 
         [Required]
         public int PolicyId { get; set; }
+
+        [Required, Range(0.01, double.MaxValue, ErrorMessage = "Claim amount must be greater than zero")]
+        public decimal ClaimAmount { get; set; }
     }
 }

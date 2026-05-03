@@ -24,9 +24,9 @@ namespace MotorInsurance.API.Services.Car
             return await BuildPagedResult(_repository.GetQueryable(), q);
         }
 
-        public async Task<PagedResult<CarResponseDto>> GetPagedByClientIdAsync(int clientId, CarQueryParams q)
+        public async Task<PagedResult<CarResponseDto>> GetPagedByUserIdAsync(int userId, CarQueryParams q)
         {
-            var query = _repository.GetQueryable().Where(c => c.ClientId == clientId);
+            var query = _repository.GetQueryable().Where(c => c.UserId == userId);
             return await BuildPagedResult(query, q);
         }
 
@@ -36,7 +36,7 @@ namespace MotorInsurance.API.Services.Car
             return car == null ? null : MapToDto(car);
         }
 
-        public async Task<CarResponseDto> CreateAsync(CreateCarDto dto)
+        public async Task<CarResponseDto> CreateAsync(CreateCarDto dto, int userId)
         {
             if (DateTime.UtcNow.Year - dto.Year > _pricing.MaxCarAgeYears)
                 throw new ArgumentException($"Car must be {_pricing.MaxCarAgeYears} years or newer");
@@ -48,7 +48,7 @@ namespace MotorInsurance.API.Services.Car
                 Year = dto.Year,
                 Price = dto.Price,
                 FuelType = dto.FuelType,
-                ClientId = dto.ClientId
+                UserId = userId
             };
 
             await _repository.AddAsync(car);
@@ -57,17 +57,24 @@ namespace MotorInsurance.API.Services.Car
             return MapToDto(car);
         }
 
-        public async Task<bool> UpdateAsync(int id, UpdateCarDto dto)
+        public async Task<bool> UpdateAsync(int id, UpdateCarDto dto, int userId)
         {
             var car = await _repository.GetByIdAsync(id);
             if (car == null) return false;
 
-            car.Brand = dto.Brand;
-            car.Model = dto.Model;
-            car.Year = dto.Year;
-            car.Price = dto.Price;
-            car.FuelType = dto.FuelType;
-            car.ClientId = dto.ClientId;
+            if (car.UserId != userId)
+                throw new UnauthorizedAccessException("Car does not belong to this user");
+
+            if (dto.Brand != null)       car.Brand    = dto.Brand;
+            if (dto.Model != null)       car.Model    = dto.Model;
+            if (dto.Year.HasValue)
+            {
+                if (DateTime.UtcNow.Year - dto.Year.Value > _pricing.MaxCarAgeYears)
+                    throw new ArgumentException($"Car must be {_pricing.MaxCarAgeYears} years or newer");
+                car.Year = dto.Year.Value;
+            }
+            if (dto.Price.HasValue)      car.Price    = dto.Price.Value;
+            if (dto.FuelType.HasValue)   car.FuelType = dto.FuelType.Value;
 
             _repository.Update(car);
             await _repository.SaveChangesAsync();
@@ -75,10 +82,13 @@ namespace MotorInsurance.API.Services.Car
             return true;
         }
 
-        public async Task<bool> DeleteAsync(int id)
+        public async Task<bool> DeleteAsync(int id, int userId)
         {
             var car = await _repository.GetByIdAsync(id);
             if (car == null) return false;
+
+            if (car.UserId != userId)
+                throw new UnauthorizedAccessException("Car does not belong to this user");
 
             _repository.Delete(car);
             await _repository.SaveChangesAsync();
@@ -94,6 +104,12 @@ namespace MotorInsurance.API.Services.Car
 
             if (q.FuelType.HasValue)
                 query = query.Where(c => c.FuelType == q.FuelType.Value);
+
+            if (q.MinYear.HasValue)
+                query = query.Where(c => c.Year >= q.MinYear.Value);
+
+            if (q.MaxYear.HasValue)
+                query = query.Where(c => c.Year <= q.MaxYear.Value);
 
             var totalCount = await query.CountAsync();
 
@@ -120,7 +136,7 @@ namespace MotorInsurance.API.Services.Car
             Year = c.Year,
             Price = c.Price,
             FuelType = c.FuelType,
-            ClientId = c.ClientId
+            UserId = c.UserId
         };
     }
 }

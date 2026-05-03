@@ -1,9 +1,10 @@
+using Microsoft.EntityFrameworkCore;
+using MotorInsurance.API.Common;
+using MotorInsurance.API.Data;
 using MotorInsurance.API.Repositories.RefreshToken;
 using MotorInsurance.API.Repositories.User;
-using MotorInsurance.API.Repositories.Client;
 using MotorInsurance.API.Services.Auth;
-using MotorInsurance.API.Common;
-using MotorInsurance.API.DTOs.RefreshToken;
+using System.Data;
 using RefreshTokenModel = MotorInsurance.API.Models.RefreshToken;
 
 namespace MotorInsurance.API.Services.RefreshToken
@@ -12,30 +13,19 @@ namespace MotorInsurance.API.Services.RefreshToken
     {
         private readonly IRefreshTokenRepository _repository;
         private readonly IUserRepository _userRepository;
-        private readonly IClientRepository _clientRepository;
         private readonly JwtService _jwtService;
+        private readonly ApplicationDbContext _context;
 
         public RefreshTokenService(
             IRefreshTokenRepository repository,
             IUserRepository userRepository,
-            IClientRepository clientRepository,
-            JwtService jwtService)
+            JwtService jwtService,
+            ApplicationDbContext context)
         {
             _repository = repository;
             _userRepository = userRepository;
-            _clientRepository = clientRepository;
             _jwtService = jwtService;
-        }
-
-        public async Task<List<RefreshTokenResponseDto>> GetAllAsync()
-        {
-            var tokens = await _repository.GetAllAsync();
-            return tokens.Select(t => new RefreshTokenResponseDto
-            {
-                Id = t.Id,
-                UserId = t.UserId,
-                ExpiryDate = t.ExpiryDate
-            }).ToList();
+            _context = context;
         }
 
         public async Task<bool> RevokeAsync(string refreshToken)
@@ -66,31 +56,42 @@ namespace MotorInsurance.API.Services.RefreshToken
             if (user == null)
                 return (false, "User not found", null, null);
 
-            // Rotate: delete old token
-            await _repository.DeleteAsync(token);
+            string newJwt;
+            string newRefreshTokenValue;
 
-            int? clientId = null;
-            if (user.Role == "Client")
+            if (_context.Database.IsRelational())
             {
-                var client = await _clientRepository.GetByUserIdAsync(user.Id);
-                clientId = client?.Id;
+                // Serializable transaction prevents two concurrent requests from reusing the same token
+                using var tx = await _context.Database.BeginTransactionAsync(IsolationLevel.Serializable);
+
+                await _repository.DeleteAsync(token);
+
+                newJwt = _jwtService.GenerateToken(user.Id, user.Username, user.Role);
+                newRefreshTokenValue = SecurityHelper.GenerateSecureToken();
+                await _repository.AddAsync(new RefreshTokenModel
+                {
+                    Token = newRefreshTokenValue,
+                    UserId = user.Id,
+                    ExpiryDate = DateTime.UtcNow.AddDays(7)
+                });
+                await _repository.SaveChangesAsync();
+                await tx.CommitAsync();
             }
-
-            var newJwt = _jwtService.GenerateToken(user.Id, user.Username, user.Role, clientId);
-
-            var newRefreshTokenValue = SecurityHelper.GenerateSecureToken();
-            var newRefreshToken = new RefreshTokenModel
+            else
             {
-                Token = newRefreshTokenValue,
-                UserId = user.Id,
-                ExpiryDate = DateTime.UtcNow.AddDays(7)
-            };
-
-            await _repository.AddAsync(newRefreshToken);
-            await _repository.SaveChangesAsync();
+                await _repository.DeleteAsync(token);
+                newJwt = _jwtService.GenerateToken(user.Id, user.Username, user.Role);
+                newRefreshTokenValue = SecurityHelper.GenerateSecureToken();
+                await _repository.AddAsync(new RefreshTokenModel
+                {
+                    Token = newRefreshTokenValue,
+                    UserId = user.Id,
+                    ExpiryDate = DateTime.UtcNow.AddDays(7)
+                });
+                await _repository.SaveChangesAsync();
+            }
 
             return (true, "Success", newJwt, newRefreshTokenValue);
         }
-
     }
 }

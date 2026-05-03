@@ -47,7 +47,7 @@ namespace MotorInsurance.API.Repositories.User
 
         public async Task<Models.User?> GetByIdAsync(int id)
         {
-            return await _context.Users.FindAsync(id);
+            return await _context.Users.FirstOrDefaultAsync(u => u.Id == id);
         }
 
         public async Task<List<Models.User>> GetAllAsync()
@@ -62,9 +62,10 @@ namespace MotorInsurance.API.Repositories.User
             await _context.Users.AddAsync(user);
         }
 
-        public async Task DeleteAsync(Models.User user)
+        public void Delete(Models.User user)
         {
-            _context.Users.Remove(user);
+            user.IsDeleted = true;
+            user.DeletedAt = DateTime.UtcNow;
         }
 
         public async Task SaveChangesAsync()

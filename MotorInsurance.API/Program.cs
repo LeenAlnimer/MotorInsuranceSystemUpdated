@@ -8,7 +8,6 @@ using MotorInsurance.API.Data;
 // Repositories
 using MotorInsurance.API.Repositories.Car;
 using MotorInsurance.API.Repositories.Claim;
-using MotorInsurance.API.Repositories.Client;
 using MotorInsurance.API.Repositories.Policy;
 using MotorInsurance.API.Repositories.Quote;
 using MotorInsurance.API.Repositories.RefreshToken;
@@ -18,7 +17,6 @@ using MotorInsurance.API.Repositories.User;
 using MotorInsurance.API.Services.Auth;
 using MotorInsurance.API.Services.Car;
 using MotorInsurance.API.Services.Claim;
-using MotorInsurance.API.Services.Client;
 using MotorInsurance.API.Services.Policy;
 using MotorInsurance.API.Services.Quote;
 using MotorInsurance.API.Services.RefreshToken;
@@ -28,12 +26,14 @@ using MotorInsurance.API.Common;
 using MotorInsurance.API.Middleware;
 using MotorInsurance.API.Services.Email;
 using System.Text;
+using System.Text.Json.Serialization;
 using System.Threading.RateLimiting;
 
 var builder = WebApplication.CreateBuilder(args);
 
 // Controllers
-builder.Services.AddControllers();
+builder.Services.AddControllers()
+    .AddJsonOptions(o => o.JsonSerializerOptions.Converters.Add(new JsonStringEnumConverter()));
 
 //  Database
 builder.Services.AddDbContext<ApplicationDbContext>(options =>
@@ -55,9 +55,8 @@ builder.Services.AddCors(options =>
 // Repositories
 builder.Services.AddScoped<ICarRepository, CarRepository>();
 builder.Services.AddScoped<IQuoteRepository, QuoteRepository>();
-builder.Services.AddScoped<IPolicyRepository, PolicyRepository>();
-builder.Services.AddScoped<IClientRepository, ClientRepository>();
 builder.Services.AddScoped<IClaimRepository, ClaimRepository>();
+builder.Services.AddScoped<IPolicyRepository, PolicyRepository>();
 builder.Services.AddScoped<IUserRepository, UserRepository>();
 builder.Services.AddScoped<IRefreshTokenRepository, RefreshTokenRepository>();
 
@@ -65,13 +64,15 @@ builder.Services.AddScoped<IRefreshTokenRepository, RefreshTokenRepository>();
 builder.Services.AddScoped<ICarService, CarService>();
 builder.Services.AddScoped<IQuoteService, QuoteService>();
 builder.Services.AddScoped<IPolicyService, PolicyService>();
-builder.Services.AddScoped<IClientService, ClientService>();
 builder.Services.AddScoped<IClaimService, ClaimService>();
 builder.Services.AddScoped<IUserService, UserService>();
 builder.Services.AddScoped<IRefreshTokenService, RefreshTokenService>();
 
 // JWT Service
 builder.Services.AddScoped<JwtService>();
+
+// Background Services
+builder.Services.AddHostedService<MotorInsurance.API.Services.Background.PolicyExpirationService>();
 
 // Insurance Pricing Settings
 builder.Services.Configure<InsurancePricingSettings>(
@@ -115,8 +116,15 @@ builder.Services.AddSwaggerGen(options =>
     });
 });
 
-// JWT CONFIG from appsettings.json
-var jwtKey = builder.Configuration["Jwt:Key"]!;
+// JWT key must be supplied via dotnet user-secrets (dev) or an environment variable (prod).
+// Example: dotnet user-secrets set "Jwt:Key" "<your-secret-32+-chars>"
+var jwtKey = builder.Configuration["Jwt:Key"]
+    ?? throw new InvalidOperationException(
+        "Jwt:Key is not configured. Set it via user-secrets or the JWT__KEY environment variable.");
+
+if (jwtKey.Length < 32)
+    throw new InvalidOperationException("Jwt:Key must be at least 32 characters long.");
+
 var jwtIssuer = builder.Configuration["Jwt:Issuer"]!;
 var jwtAudience = builder.Configuration["Jwt:Audience"]!;
 
@@ -150,6 +158,15 @@ builder.Services.AddRateLimiter(options =>
         opt.QueueProcessingOrder = QueueProcessingOrder.OldestFirst;
         opt.QueueLimit = 0;
     });
+
+    options.AddFixedWindowLimiter("refresh", opt =>
+    {
+        opt.PermitLimit = 10;
+        opt.Window = TimeSpan.FromMinutes(1);
+        opt.QueueProcessingOrder = QueueProcessingOrder.OldestFirst;
+        opt.QueueLimit = 0;
+    });
+
     options.RejectionStatusCode = StatusCodes.Status429TooManyRequests;
 });
 
@@ -177,3 +194,5 @@ app.MapControllers();
 app.MapHealthChecks("/health");
 
 app.Run();
+
+public partial class Program { }

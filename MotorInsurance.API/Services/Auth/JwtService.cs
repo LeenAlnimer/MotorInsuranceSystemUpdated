@@ -1,7 +1,10 @@
 using System.IdentityModel.Tokens.Jwt;
 using System.Text;
-using Microsoft.IdentityModel.Tokens;
 using Microsoft.Extensions.Configuration;
+using Microsoft.IdentityModel.Tokens;
+using SecurityClaim = System.Security.Claims.Claim;
+using SecurityClaimTypes = System.Security.Claims.ClaimTypes;
+
 namespace MotorInsurance.API.Services.Auth
 {
     public class JwtService
@@ -9,25 +12,24 @@ namespace MotorInsurance.API.Services.Auth
         private readonly string _key;
         private readonly string _issuer;
         private readonly string _audience;
+        private readonly int _expiryHours;
 
         public JwtService(IConfiguration configuration)
         {
             _key = configuration["Jwt:Key"]!;
             _issuer = configuration["Jwt:Issuer"]!;
             _audience = configuration["Jwt:Audience"]!;
+            _expiryHours = int.TryParse(configuration["Jwt:ExpiryHours"], out var h) ? h : 2;
         }
 
-        public string GenerateToken(int userId, string username, string role, int? clientId = null)
+        public string GenerateToken(int userId, string username, string role)
         {
-            var claims = new List<System.Security.Claims.Claim>
+            var claims = new List<SecurityClaim>
             {
-                new System.Security.Claims.Claim(System.Security.Claims.ClaimTypes.NameIdentifier, userId.ToString()),
-                new System.Security.Claims.Claim(System.Security.Claims.ClaimTypes.Name, username),
-                new System.Security.Claims.Claim(System.Security.Claims.ClaimTypes.Role, role)
+                new SecurityClaim(SecurityClaimTypes.NameIdentifier, userId.ToString()),
+                new SecurityClaim(SecurityClaimTypes.Name, username),
+                new SecurityClaim(SecurityClaimTypes.Role, role)
             };
-
-            if (clientId.HasValue)
-                claims.Add(new System.Security.Claims.Claim("clientId", clientId.Value.ToString()));
 
             var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(_key));
             var creds = new SigningCredentials(key, SecurityAlgorithms.HmacSha256);
@@ -36,7 +38,7 @@ namespace MotorInsurance.API.Services.Auth
                 issuer: _issuer,
                 audience: _audience,
                 claims: claims,
-                expires: DateTime.UtcNow.AddHours(2),
+                expires: DateTime.UtcNow.AddHours(_expiryHours),
                 signingCredentials: creds
             );
 

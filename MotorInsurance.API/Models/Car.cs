@@ -1,4 +1,4 @@
-﻿using System.Text.Json.Serialization;
+using System.Text.Json.Serialization;
 using MotorInsurance.API.Common;
 
 namespace MotorInsurance.API.Models
@@ -12,10 +12,10 @@ namespace MotorInsurance.API.Models
         public decimal Price { get; set; }
         public FuelType FuelType { get; set; }
 
-        public int ClientId { get; set; }
+        public int UserId { get; set; }
 
         [JsonIgnore]
-        public Client? Client { get; set; }
+        public User? User { get; set; }
 
         public List<Quote>? Quotes { get; set; }
 

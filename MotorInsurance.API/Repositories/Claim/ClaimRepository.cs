@@ -28,7 +28,7 @@ namespace MotorInsurance.API.Repositories.Claim
 
         public async Task<Models.Claim?> GetByIdAsync(int id)
         {
-            return await _context.Claims.FindAsync(id);
+            return await _context.Claims.FirstOrDefaultAsync(c => c.Id == id);
         }
 
         public async Task AddAsync(Models.Claim claim)
@@ -48,7 +48,8 @@ namespace MotorInsurance.API.Repositories.Claim
 
         public void Delete(Models.Claim claim)
         {
-            _context.Claims.Remove(claim);
+            claim.IsDeleted = true;
+            claim.DeletedAt = DateTime.UtcNow;
         }
 
         public async Task SaveChangesAsync()

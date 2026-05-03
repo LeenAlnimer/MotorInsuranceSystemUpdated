@@ -4,6 +4,9 @@ namespace MotorInsurance.API.DTOs.User
 {
     public class UpdateUserDto
     {
+        [MinLength(2)]
+        public string? FullName { get; set; }
+
         [MinLength(3)]
         public string? Username { get; set; }
 

@@ -33,9 +33,6 @@ namespace MotorInsurance.API.Migrations
                     b.Property<string>("Brand")
                         .HasColumnType("nvarchar(max)");
 
-                    b.Property<int>("ClientId")
-                        .HasColumnType("int");
-
                     b.Property<DateTime?>("DeletedAt")
                         .HasColumnType("datetime2");
 
@@ -53,12 +50,15 @@ namespace MotorInsurance.API.Migrations
                         .HasPrecision(18, 2)
                         .HasColumnType("decimal(18,2)");
 
+                    b.Property<int>("UserId")
+                        .HasColumnType("int");
+
                     b.Property<int>("Year")
                         .HasColumnType("int");
 
                     b.HasKey("Id");
 
-                    b.HasIndex("ClientId");
+                    b.HasIndex("UserId");
 
                     b.ToTable("Cars");
                 });
@@ -71,13 +71,36 @@ namespace MotorInsurance.API.Migrations
 
                     SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
 
+                    b.Property<DateTime?>("ApprovedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<int?>("ApprovedById")
+                        .HasColumnType("int");
+
+                    b.Property<decimal>("ClaimAmount")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("decimal(18,2)");
+
                     b.Property<DateTime>("CreatedAt")
                         .HasColumnType("datetime2");
 
+                    b.Property<DateTime?>("DeletedAt")
+                        .HasColumnType("datetime2");
+
                     b.Property<string>("Description")
+                        .IsRequired()
                         .HasColumnType("nvarchar(max)");
 
+                    b.Property<bool>("IsDeleted")
+                        .HasColumnType("bit");
+
                     b.Property<int>("PolicyId")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime?>("RejectedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<int?>("RejectedById")
                         .HasColumnType("int");
 
                     b.Property<string>("Status")
@@ -96,7 +119,7 @@ namespace MotorInsurance.API.Migrations
                     b.ToTable("Claims");
                 });
 
-            modelBuilder.Entity("MotorInsurance.API.Models.Client", b =>
+            modelBuilder.Entity("MotorInsurance.API.Models.Policy", b =>
                 {
                     b.Property<int>("Id")
                         .ValueGeneratedOnAdd()
@@ -107,46 +130,25 @@ namespace MotorInsurance.API.Migrations
                     b.Property<DateTime?>("DeletedAt")
                         .HasColumnType("datetime2");
 
-                    b.Property<string>("Email")
-                        .HasColumnType("nvarchar(max)");
+                    b.Property<DateTime>("EndDate")
+                        .HasColumnType("datetime2");
 
-                    b.Property<string>("FullName")
-                        .HasColumnType("nvarchar(max)");
+                    b.Property<decimal>("InsuredValue")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("decimal(18,2)");
 
                     b.Property<bool>("IsDeleted")
                         .HasColumnType("bit");
-
-                    b.Property<string>("PhoneNumber")
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<int?>("UserId")
-                        .HasColumnType("int");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("UserId")
-                        .IsUnique()
-                        .HasFilter("[UserId] IS NOT NULL");
-
-                    b.ToTable("Clients");
-                });
-
-            modelBuilder.Entity("MotorInsurance.API.Models.Policy", b =>
-                {
-                    b.Property<int>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("int");
-
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
-
-                    b.Property<DateTime>("EndDate")
-                        .HasColumnType("datetime2");
 
                     b.Property<int>("QuoteId")
                         .HasColumnType("int");
 
                     b.Property<DateTime>("StartDate")
                         .HasColumnType("datetime2");
+
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
 
                     b.HasKey("Id");
 
@@ -170,12 +172,22 @@ namespace MotorInsurance.API.Migrations
                     b.Property<DateTime>("CreatedAt")
                         .HasColumnType("datetime2");
 
-                    b.Property<bool>("IsApproved")
+                    b.Property<DateTime?>("DeletedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<DateTime>("ExpiresAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<bool>("IsDeleted")
                         .HasColumnType("bit");
 
                     b.Property<decimal>("Price")
                         .HasPrecision(18, 2)
                         .HasColumnType("decimal(18,2)");
+
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
 
                     b.HasKey("Id");
 
@@ -196,6 +208,7 @@ namespace MotorInsurance.API.Migrations
                         .HasColumnType("datetime2");
 
                     b.Property<string>("Token")
+                        .IsRequired()
                         .HasColumnType("nvarchar(max)");
 
                     b.Property<int>("UserId")
@@ -219,9 +232,18 @@ namespace MotorInsurance.API.Migrations
                     b.Property<DateTime>("DateCreated")
                         .HasColumnType("datetime2");
 
+                    b.Property<DateTime?>("DeletedAt")
+                        .HasColumnType("datetime2");
+
                     b.Property<string>("Email")
                         .IsRequired()
+                        .HasColumnType("nvarchar(450)");
+
+                    b.Property<string>("FullName")
                         .HasColumnType("nvarchar(max)");
+
+                    b.Property<bool>("IsDeleted")
+                        .HasColumnType("bit");
 
                     b.Property<DateTime?>("LastLogin")
                         .HasColumnType("datetime2");
@@ -232,7 +254,7 @@ namespace MotorInsurance.API.Migrations
 
                     b.Property<string>("PhoneNumber")
                         .IsRequired()
-                        .HasColumnType("nvarchar(max)");
+                        .HasColumnType("nvarchar(450)");
 
                     b.Property<string>("Role")
                         .IsRequired()
@@ -240,22 +262,31 @@ namespace MotorInsurance.API.Migrations
 
                     b.Property<string>("Username")
                         .IsRequired()
-                        .HasColumnType("nvarchar(max)");
+                        .HasColumnType("nvarchar(450)");
 
                     b.HasKey("Id");
+
+                    b.HasIndex("Email")
+                        .IsUnique();
+
+                    b.HasIndex("PhoneNumber")
+                        .IsUnique();
+
+                    b.HasIndex("Username")
+                        .IsUnique();
 
                     b.ToTable("Users");
                 });
 
             modelBuilder.Entity("MotorInsurance.API.Models.Car", b =>
                 {
-                    b.HasOne("MotorInsurance.API.Models.Client", "Client")
+                    b.HasOne("MotorInsurance.API.Models.User", "User")
                         .WithMany("Cars")
-                        .HasForeignKey("ClientId")
+                        .HasForeignKey("UserId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
-                    b.Navigation("Client");
+                    b.Navigation("User");
                 });
 
             modelBuilder.Entity("MotorInsurance.API.Models.Claim", b =>
@@ -273,15 +304,6 @@ namespace MotorInsurance.API.Migrations
                         .IsRequired();
 
                     b.Navigation("Policy");
-
-                    b.Navigation("User");
-                });
-
-            modelBuilder.Entity("MotorInsurance.API.Models.Client", b =>
-                {
-                    b.HasOne("MotorInsurance.API.Models.User", "User")
-                        .WithOne("Client")
-                        .HasForeignKey("MotorInsurance.API.Models.Client", "UserId");
 
                     b.Navigation("User");
                 });
@@ -324,11 +346,6 @@ namespace MotorInsurance.API.Migrations
                     b.Navigation("Quotes");
                 });
 
-            modelBuilder.Entity("MotorInsurance.API.Models.Client", b =>
-                {
-                    b.Navigation("Cars");
-                });
-
             modelBuilder.Entity("MotorInsurance.API.Models.Policy", b =>
                 {
                     b.Navigation("Claims");
@@ -341,7 +358,7 @@ namespace MotorInsurance.API.Migrations
 
             modelBuilder.Entity("MotorInsurance.API.Models.User", b =>
                 {
-                    b.Navigation("Client");
+                    b.Navigation("Cars");
                 });
 #pragma warning restore 612, 618
         }

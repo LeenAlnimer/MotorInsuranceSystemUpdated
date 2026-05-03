@@ -10,8 +10,8 @@ namespace MotorInsurance.API.Services.Claim
         Task<PagedResult<ClaimResponseDto>> GetPagedByUserIdAsync(int userId, ClaimQueryParams queryParams);
         Task<ClaimResponseDto?> GetByIdAsync(int id);
         Task<(bool Success, string Message, ClaimResponseDto? Claim)> CreateAsync(CreateClaimDto dto, int userId);
-        Task<bool> ApproveAsync(int id);
-        Task<bool> RejectAsync(int id);
+        Task<bool> ApproveAsync(int id, int performedByUserId);
+        Task<bool> RejectAsync(int id, int performedByUserId);
         Task<bool> DeleteAsync(int id);
     }
 }

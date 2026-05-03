@@ -13,7 +13,7 @@ namespace MotorInsurance.API.Repositories.User
         Task<List<Models.User>> GetAllAsync();
 
         Task AddAsync(Models.User user);
-        Task DeleteAsync(Models.User user);
+        void Delete(Models.User user);
         Task SaveChangesAsync();
     }
 }

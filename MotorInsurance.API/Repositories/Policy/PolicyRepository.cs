@@ -1,5 +1,6 @@
-﻿using MotorInsurance.API.Data;
-using MotorInsurance.API.Models;
+using Microsoft.EntityFrameworkCore;
+using MotorInsurance.API.Common;
+using MotorInsurance.API.Data;
 
 namespace MotorInsurance.API.Repositories.Policy
 {
@@ -12,13 +13,37 @@ namespace MotorInsurance.API.Repositories.Policy
             _context = context;
         }
 
-        public async Task AddAsync(global::MotorInsurance.API.Models.Policy policy)
-        {
-            await _context.Policies.AddAsync(policy);
-        }
+        public IQueryable<Models.Policy> GetQueryable() =>
+            _context.Policies
+                .Include(p => p.Quote)
+                    .ThenInclude(q => q!.Car)
+                        .ThenInclude(c => c!.User)
+                .AsQueryable();
 
-        public async Task SaveChangesAsync()
+        public async Task<Models.Policy?> GetByIdAsync(int id) =>
+            await _context.Policies
+                .Include(p => p.Quote)
+                    .ThenInclude(q => q!.Car)
+                        .ThenInclude(c => c!.User)
+                .FirstOrDefaultAsync(p => p.Id == id);
+
+        public async Task AddAsync(Models.Policy policy) =>
+            await _context.Policies.AddAsync(policy);
+
+        public async Task SaveChangesAsync() =>
+            await _context.SaveChangesAsync();
+
+        public async Task ExpireOutdatedAsync()
         {
+            var outdated = await _context.Policies
+                .Where(p => p.Status == PolicyStatus.Active && p.EndDate < DateTime.UtcNow)
+                .ToListAsync();
+
+            if (outdated.Count == 0) return;
+
+            foreach (var policy in outdated)
+                policy.Status = PolicyStatus.Expired;
+
             await _context.SaveChangesAsync();
         }
     }

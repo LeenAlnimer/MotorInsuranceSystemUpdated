@@ -12,11 +12,6 @@ namespace MotorInsurance.API.Repositories.RefreshToken
             _context = context;
         }
 
-        public async Task<List<Models.RefreshToken>> GetAllAsync()
-        {
-            return await _context.RefreshTokens.ToListAsync();
-        }
-
         public async Task<Models.RefreshToken?> GetByTokenAsync(string token)
         {
             return await _context.RefreshTokens

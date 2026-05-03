@@ -1,4 +1,5 @@
-﻿using System.Text.Json.Serialization;
+using System.Text.Json.Serialization;
+using MotorInsurance.API.Common;
 
 namespace MotorInsurance.API.Models
 {
@@ -8,9 +9,9 @@ namespace MotorInsurance.API.Models
 
         public decimal Price { get; set; }
         public DateTime CreatedAt { get; set; }
+        public DateTime ExpiresAt { get; set; }
 
-        // Indicates whether the quote has been approved
-        public bool IsApproved { get; set; }
+        public QuoteStatus Status { get; set; } = QuoteStatus.Pending;
 
         public int CarId { get; set; }
 
@@ -18,5 +19,8 @@ namespace MotorInsurance.API.Models
         public Car? Car { get; set; }
 
         public Policy? Policy { get; set; }
+
+        public bool IsDeleted { get; set; } = false;
+        public DateTime? DeletedAt { get; set; }
     }
 }

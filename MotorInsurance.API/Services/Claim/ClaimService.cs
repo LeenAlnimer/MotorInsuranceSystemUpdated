@@ -6,6 +6,7 @@ using MotorInsurance.API.DTOs.Claim;
 using MotorInsurance.API.DTOs.QueryParams;
 using MotorInsurance.API.Repositories.Claim;
 using MotorInsurance.API.Services.Email;
+using System.Data;
 using ClaimModel = MotorInsurance.API.Models.Claim;
 
 
@@ -45,9 +46,16 @@ namespace MotorInsurance.API.Services.Claim
 
         public async Task<(bool Success, string Message, ClaimResponseDto? Claim)> CreateAsync(CreateClaimDto dto, int userId)
         {
-            var policy = await _context.Policies.FindAsync(dto.PolicyId);
+            var policy = await _context.Policies
+                .Include(p => p.Quote)
+                    .ThenInclude(q => q!.Car)
+                .FirstOrDefaultAsync(p => p.Id == dto.PolicyId);
+
             if (policy == null)
                 return (false, "Policy not found", null);
+
+            if (policy.Status != PolicyStatus.Active)
+                return (false, $"Policy is {policy.Status.ToString().ToLower()} and cannot accept new claims", null);
 
             if (policy.EndDate < DateTime.UtcNow)
                 return (false, "Policy has expired", null);
@@ -55,30 +63,74 @@ namespace MotorInsurance.API.Services.Claim
             if (!await _repository.UserExists(userId))
                 return (false, "User not found", null);
 
-            var client = await _context.Clients.FirstOrDefaultAsync(c => c.UserId == userId);
-            if (client != null)
-            {
-                var policyBelongsToClient = await _context.Policies
-                    .AnyAsync(p => p.Id == dto.PolicyId &&
-                                   p.Quote != null &&
-                                   p.Quote.Car != null &&
-                                   p.Quote.Car.ClientId == client.Id);
+            var car = policy.Quote?.Car;
+            if (car == null)
+                return (false, "Policy has no associated car data", null);
 
-                if (!policyBelongsToClient)
-                    return (false, "Policy does not belong to you", null);
+            if (car.UserId != userId)
+                return (false, "Policy does not belong to you", null);
+
+            // استخدام InsuredValue المحفوظ وقت إنشاء البوليصة - fallback لسعر السيارة الحالي للبوليصات القديمة
+            var insuredValue = policy.InsuredValue > 0 ? policy.InsuredValue : car.Price;
+
+            if (dto.ClaimAmount > insuredValue)
+                return (false, $"Claim amount cannot exceed the insured value ({insuredValue:F2})", null);
+
+            ClaimModel claim;
+
+            if (_context.Database.IsRelational())
+            {
+                using var tx = await _context.Database.BeginTransactionAsync(IsolationLevel.Serializable);
+
+                var totalActiveClaims = await _context.Claims
+                    .Where(c => c.PolicyId == dto.PolicyId &&
+                                (c.Status == ClaimStatus.Pending || c.Status == ClaimStatus.Approved))
+                    .SumAsync(c => (decimal?)c.ClaimAmount) ?? 0;
+
+                if (totalActiveClaims + dto.ClaimAmount > insuredValue)
+                    return (false,
+                        $"Total claims ({totalActiveClaims + dto.ClaimAmount:F2}) would exceed the insured value ({insuredValue:F2})",
+                        null);
+
+                claim = new ClaimModel
+                {
+                    Description = dto.Description,
+                    ClaimAmount = dto.ClaimAmount,
+                    Status = ClaimStatus.Pending,
+                    PolicyId = dto.PolicyId,
+                    UserId = userId,
+                    CreatedAt = DateTime.UtcNow
+                };
+
+                await _repository.AddAsync(claim);
+                await _repository.SaveChangesAsync();
+                await tx.CommitAsync();
             }
-
-            var claim = new ClaimModel
+            else
             {
-                Description = dto.Description,
-                Status = ClaimStatus.Pending,
-                PolicyId = dto.PolicyId,
-                UserId = userId,
-                CreatedAt = DateTime.UtcNow
-            };
+                var totalActiveClaims = await _context.Claims
+                    .Where(c => c.PolicyId == dto.PolicyId &&
+                                (c.Status == ClaimStatus.Pending || c.Status == ClaimStatus.Approved))
+                    .SumAsync(c => (decimal?)c.ClaimAmount) ?? 0;
 
-            await _repository.AddAsync(claim);
-            await _repository.SaveChangesAsync();
+                if (totalActiveClaims + dto.ClaimAmount > insuredValue)
+                    return (false,
+                        $"Total claims ({totalActiveClaims + dto.ClaimAmount:F2}) would exceed the insured value ({insuredValue:F2})",
+                        null);
+
+                claim = new ClaimModel
+                {
+                    Description = dto.Description,
+                    ClaimAmount = dto.ClaimAmount,
+                    Status = ClaimStatus.Pending,
+                    PolicyId = dto.PolicyId,
+                    UserId = userId,
+                    CreatedAt = DateTime.UtcNow
+                };
+
+                await _repository.AddAsync(claim);
+                await _repository.SaveChangesAsync();
+            }
 
             _logger.LogInformation("Claim {ClaimId} created for Policy {PolicyId} by User {UserId}",
                 claim.Id, dto.PolicyId, userId);
@@ -86,42 +138,74 @@ namespace MotorInsurance.API.Services.Claim
             return (true, "Created", MapToDto(claim));
         }
 
-        public async Task<bool> ApproveAsync(int id)
+        public async Task<bool> ApproveAsync(int id, int performedByUserId)
         {
             var claim = await _repository.GetByIdAsync(id);
             if (claim == null) return false;
 
+            if (claim.Status != ClaimStatus.Pending)
+                throw new InvalidOperationException($"Claim is already {claim.Status.ToString().ToLower()}");
+
+            var policy = await _context.Policies.FindAsync(claim.PolicyId);
+            if (policy == null || policy.Status != PolicyStatus.Active || policy.EndDate < DateTime.UtcNow)
+                throw new InvalidOperationException("Cannot approve a claim for a policy that is not active");
+
             claim.Status = ClaimStatus.Approved;
+            claim.ApprovedById = performedByUserId;
+            claim.ApprovedAt = DateTime.UtcNow;
             await _repository.SaveChangesAsync();
 
-            _logger.LogInformation("Claim {ClaimId} approved", id);
+            _logger.LogInformation("Claim {ClaimId} approved by User {UserId}", id, performedByUserId);
 
             var user = await _context.Users.FindAsync(claim.UserId);
             if (user != null)
-                _ = _emailService.SendAsync(
-                    user.Email,
-                    "تم الموافقة على مطالبتك — Motor Insurance",
-                    $"عزيزي {user.Username}،\n\nتم الموافقة على مطالبتك رقم #{claim.Id}.\n\nشكراً لثقتك بنا.");
+            {
+                try
+                {
+                    await _emailService.SendAsync(
+                        user.Email,
+                        "تم الموافقة على مطالبتك — Motor Insurance",
+                        $"عزيزي {user.Username}،\n\nتم الموافقة على مطالبتك رقم #{claim.Id}.\n\nشكراً لثقتك بنا.");
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogWarning(ex, "Failed to send approval email for Claim {ClaimId}", id);
+                }
+            }
 
             return true;
         }
 
-        public async Task<bool> RejectAsync(int id)
+        public async Task<bool> RejectAsync(int id, int performedByUserId)
         {
             var claim = await _repository.GetByIdAsync(id);
             if (claim == null) return false;
 
+            if (claim.Status != ClaimStatus.Pending)
+                throw new InvalidOperationException($"Claim is already {claim.Status.ToString().ToLower()}");
+
             claim.Status = ClaimStatus.Rejected;
+            claim.RejectedById = performedByUserId;
+            claim.RejectedAt = DateTime.UtcNow;
             await _repository.SaveChangesAsync();
 
-            _logger.LogInformation("Claim {ClaimId} rejected", id);
+            _logger.LogInformation("Claim {ClaimId} rejected by User {UserId}", id, performedByUserId);
 
             var user = await _context.Users.FindAsync(claim.UserId);
             if (user != null)
-                _ = _emailService.SendAsync(
-                    user.Email,
-                    "تم رفض مطالبتك — Motor Insurance",
-                    $"عزيزي {user.Username}،\n\nنأسف لإعلامك بأنه تم رفض مطالبتك رقم #{claim.Id}.\n\nللاستفسار يرجى التواصل معنا.");
+            {
+                try
+                {
+                    await _emailService.SendAsync(
+                        user.Email,
+                        "تم رفض مطالبتك — Motor Insurance",
+                        $"عزيزي {user.Username}،\n\nنأسف لإعلامك بأنه تم رفض مطالبتك رقم #{claim.Id}.\n\nللاستفسار يرجى التواصل معنا.");
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogWarning(ex, "Failed to send rejection email for Claim {ClaimId}", id);
+                }
+            }
 
             return true;
         }
@@ -130,6 +214,10 @@ namespace MotorInsurance.API.Services.Claim
         {
             var claim = await _repository.GetByIdAsync(id);
             if (claim == null) return false;
+
+            if (claim.Status == ClaimStatus.Pending || claim.Status == ClaimStatus.Approved)
+                throw new InvalidOperationException(
+                    $"Cannot delete a {claim.Status.ToString().ToLower()} claim. Only rejected claims can be deleted.");
 
             _repository.Delete(claim);
             await _repository.SaveChangesAsync();
@@ -144,6 +232,9 @@ namespace MotorInsurance.API.Services.Claim
 
             if (q.UserId.HasValue)
                 query = query.Where(c => c.UserId == q.UserId.Value);
+
+            if (q.PolicyId.HasValue)
+                query = query.Where(c => c.PolicyId == q.PolicyId.Value);
 
             if (q.FromDate.HasValue)
                 query = query.Where(c => c.CreatedAt >= q.FromDate.Value);
@@ -172,10 +263,15 @@ namespace MotorInsurance.API.Services.Claim
         {
             Id = c.Id,
             Description = c.Description,
-            Status = c.Status.ToString(),
+            ClaimAmount = c.ClaimAmount,
+            Status = c.Status,
             PolicyId = c.PolicyId,
             UserId = c.UserId,
-            CreatedAt = c.CreatedAt
+            CreatedAt = c.CreatedAt,
+            ApprovedById = c.ApprovedById,
+            ApprovedAt = c.ApprovedAt,
+            RejectedById = c.RejectedById,
+            RejectedAt = c.RejectedAt
         };
     }
 }
