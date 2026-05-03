@@ -1,6 +1,305 @@
-@MotorInsurance.API_HostAddress = http://localhost:5116
+@baseUrl = https://localhost:5116
+@token = YOUR_JWT_TOKEN_HERE
 
-GET {{MotorInsurance.API_HostAddress}}/weatherforecast/
-Accept: application/json
+# ─────────────────────────────────────────
+# AUTH
+# ─────────────────────────────────────────
+
+### Register
+POST {{baseUrl}}/api/auth/register
+Content-Type: application/json
+
+{
+  "username": "john_doe",
+  "email": "john@example.com",
+  "phoneNumber": "0791234567",
+  "password": "Password123!",
+  "fullName": "John Doe"
+}
+
+###
+
+### Login
+POST {{baseUrl}}/api/auth/login
+Content-Type: application/json
+
+{
+  "email": "john@example.com",
+  "password": "Password123!"
+}
+
+###
+
+### Refresh Token
+POST {{baseUrl}}/api/auth/refresh
+Content-Type: application/json
+
+{
+  "refreshToken": "YOUR_REFRESH_TOKEN_HERE"
+}
+
+###
+
+### Logout
+POST {{baseUrl}}/api/auth/logout
+Content-Type: application/json
+
+{
+  "refreshToken": "YOUR_REFRESH_TOKEN_HERE"
+}
+
+###
+
+
+# ─────────────────────────────────────────
+# USERS
+# ─────────────────────────────────────────
+
+### Get current user (me)
+GET {{baseUrl}}/api/users/me
+Authorization: Bearer {{token}}
+
+###
+
+### Update current user (me)
+PUT {{baseUrl}}/api/users/me
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "fullName": "John Updated",
+  "phoneNumber": "0799999999"
+}
+
+###
+
+### List all users - Admin only
+GET {{baseUrl}}/api/users?page=1&pageSize=10
+Authorization: Bearer {{token}}
+
+###
+
+### Create employee/admin - Admin only
+POST {{baseUrl}}/api/users
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "username": "emp_sara",
+  "email": "sara@company.com",
+  "phoneNumber": "0798765432",
+  "password": "Password123!",
+  "fullName": "Sara Ahmed",
+  "role": "Employee"
+}
+
+###
+
+### Change user role - Admin only
+PUT {{baseUrl}}/api/users/2/role
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "role": "Admin"
+}
+
+###
+
+### System stats - Admin only
+GET {{baseUrl}}/api/users/status
+Authorization: Bearer {{token}}
+
+###
+
+### Delete user - Admin only
+DELETE {{baseUrl}}/api/users/2
+Authorization: Bearer {{token}}
+
+###
+
+
+# ─────────────────────────────────────────
+# CARS
+# ─────────────────────────────────────────
+
+### List cars for a user
+GET {{baseUrl}}/api/users/1/cars?page=1&pageSize=10
+Authorization: Bearer {{token}}
+
+###
+
+### Get car by ID
+GET {{baseUrl}}/api/users/1/cars/1
+Authorization: Bearer {{token}}
+
+###
+
+### Create car - Admin/Employee only
+POST {{baseUrl}}/api/users/1/cars
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "brand": "Toyota",
+  "model": "Camry",
+  "year": 2022,
+  "price": 25000,
+  "fuelType": "Gasoline"
+}
+
+###
+
+### Update car - Admin/Employee only
+PUT {{baseUrl}}/api/users/1/cars/1
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "brand": "Toyota",
+  "model": "Camry",
+  "year": 2022,
+  "price": 27000,
+  "fuelType": "Gasoline"
+}
+
+###
+
+### Delete car - Admin/Employee only
+DELETE {{baseUrl}}/api/users/1/cars/1
+Authorization: Bearer {{token}}
+
+###
+
+
+# ─────────────────────────────────────────
+# QUOTES
+# ─────────────────────────────────────────
+
+### List all quotes
+GET {{baseUrl}}/api/quotes?page=1&pageSize=10
+Authorization: Bearer {{token}}
+
+###
+
+### Get quote by ID
+GET {{baseUrl}}/api/quotes/1
+Authorization: Bearer {{token}}
+
+###
+
+### Generate quote from car
+POST {{baseUrl}}/api/quotes/generate
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "carId": 1
+}
+
+###
+
+### Approve quote - creates a policy (Admin/Employee only)
+PUT {{baseUrl}}/api/quotes/1/approve
+Authorization: Bearer {{token}}
+
+###
+
+### Reject quote - Admin/Employee only
+PUT {{baseUrl}}/api/quotes/1/reject
+Authorization: Bearer {{token}}
+
+###
+
+### Delete quote - Admin/Employee only
+DELETE {{baseUrl}}/api/quotes/1
+Authorization: Bearer {{token}}
+
+###
+
+
+# ─────────────────────────────────────────
+# POLICIES
+# ─────────────────────────────────────────
+
+### List all policies
+GET {{baseUrl}}/api/policies?page=1&pageSize=10
+Authorization: Bearer {{token}}
+
+###
+
+### Get policy by ID
+GET {{baseUrl}}/api/policies/1
+Authorization: Bearer {{token}}
+
+###
+
+### Renew policy - Admin/Employee only
+POST {{baseUrl}}/api/policies/1/renew
+Authorization: Bearer {{token}}
+
+###
+
+### Cancel policy - Admin/Employee only
+POST {{baseUrl}}/api/policies/1/cancel
+Authorization: Bearer {{token}}
+
+###
+
+
+# ─────────────────────────────────────────
+# CLAIMS
+# ─────────────────────────────────────────
+
+### List all claims
+GET {{baseUrl}}/api/claims?page=1&pageSize=10
+Authorization: Bearer {{token}}
+
+###
+
+### Get claim by ID
+GET {{baseUrl}}/api/claims/1
+Authorization: Bearer {{token}}
+
+###
+
+### Submit a claim
+POST {{baseUrl}}/api/claims
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "policyId": 1,
+  "description": "Front bumper damage after collision",
+  "claimAmount": 850.00
+}
+
+###
+
+### Approve claim - sends email notification (Admin/Employee only)
+PUT {{baseUrl}}/api/claims/1/approve
+Authorization: Bearer {{token}}
+
+###
+
+### Reject claim - sends email notification (Admin/Employee only)
+PUT {{baseUrl}}/api/claims/1/reject
+Authorization: Bearer {{token}}
+
+###
+
+### Delete claim - Admin/Employee only
+DELETE {{baseUrl}}/api/claims/1
+Authorization: Bearer {{token}}
+
+###
+
+
+# ─────────────────────────────────────────
+# HEALTH CHECK
+# ─────────────────────────────────────────
+
+### Check API and database health
+GET {{baseUrl}}/health
 
 ###
